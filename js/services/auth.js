@@ -55,12 +55,12 @@ function atualizarSessaoAluno(dados) {
 function logout() {
   localStorage.removeItem('alunoLogado');
   localStorage.removeItem('professorLogado');
-  window.location.href = '/login.html';
+  window.location.href = 'login.html';
 }
 
 function exigirAlunoLogado() {
   const a = getAlunoLogado();
-  if (!a) { window.location.href = '/login.html'; return null; }
+  if (!a) { window.location.href = 'login.html'; return null; }
   return a;
 }
 
