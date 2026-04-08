@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG da Turma — Missões</title>
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    .page-header { padding:32px 0 20px; }
+    .page-header p { color:var(--text-muted); font-family:var(--font-title); font-size:0.88rem; letter-spacing:0.1em; }
+
+    .missao-card {
+      background: var(--bg-card); border:1px solid var(--border);
+      border-radius:var(--radius-lg); overflow:hidden;
+      transition: all var(--transition);
+    }
+    .missao-card:hover { border-color:var(--border-bright); }
+    .missao-card.concluida { opacity:0.65; }
+    .missao-card.concluida .mc-body { background: rgba(39,174,96,0.04); }
+
+    .mc-top {
+      display:flex; align-items:center; gap:14px;
+      padding:18px 20px 14px;
+    }
+    .mc-icon {
+      width:52px; height:52px; border-radius:var(--radius); flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.8rem; background:var(--bg-deep); border:1px solid var(--border-dim);
+    }
+    .mc-info { flex:1; min-width:0; }
+    .mc-info h3 { font-size:1rem; margin-bottom:3px; }
+    .mc-info .mc-meta { display:flex; gap:8px; flex-wrap:wrap; }
+    .mc-recompensa {
+      display:inline-flex; align-items:center; gap:5px;
+      font-family:var(--font-title); font-size:0.78rem; letter-spacing:0.06em;
+      color:var(--gold-text); background:rgba(212,160,23,0.1);
+      border:1px solid var(--gold-dim); border-radius:20px; padding:3px 10px;
+    }
+    .mc-turma {
+      font-family:var(--font-title); font-size:0.72rem; letter-spacing:0.06em;
+      color:var(--text-muted); border:1px solid var(--border-dim);
+      border-radius:10px; padding:3px 8px;
+    }
+    .mc-status-badge {
+      flex-shrink:0; font-family:var(--font-title); font-size:0.72rem;
+      letter-spacing:0.06em; padding:5px 12px; border-radius:20px;
+    }
+    .mc-status-badge.pendente { background:rgba(212,160,23,0.1); color:var(--gold-text); border:1px solid var(--gold-dim); }
+    .mc-status-badge.concluida { background:rgba(39,174,96,0.12); color:var(--xp-bright); border:1px solid var(--xp-dim); }
+
+    .mc-body { padding:0 20px 16px; }
+    .mc-desc { font-size:0.9rem; color:var(--text-main); line-height:1.6; margin-bottom:12px; }
+    .mc-prazo {
+      display:inline-flex; align-items:center; gap:5px;
+      font-family:var(--font-title); font-size:0.72rem; color:var(--text-muted);
+    }
+    .mc-prazo.urgente { color:var(--ember-bright); }
+
+    .missoes-grid { display:flex; flex-direction:column; gap:12px; margin-bottom:40px; }
+
+    .secao-title {
+      font-family:var(--font-title); font-size:0.75rem; letter-spacing:0.18em;
+      text-transform:uppercase; color:var(--text-faint); margin:24px 0 12px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .secao-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border-dim),transparent); }
+
+    .empty-missoes { text-align:center; padding:40px; color:var(--text-muted);
+      font-family:var(--font-title); font-size:0.85rem; letter-spacing:0.08em; }
+    .empty-missoes .ei { font-size:3rem; display:block; margin-bottom:12px; opacity:0.3; }
+  </style>
+</head>
+<body>
+  <div class="bg-texture"></div>
+  <nav class="nav">
+    <div class="nav-inner">
+      <span class="nav-brand">⚔️ RPG da Turma</span>
+      <div class="nav-links">
+        <a href="personagem.html" class="btn btn-secondary btn-sm">← Voltar</a>
+        <a href="inventario.html" class="btn btn-secondary btn-sm">🎒 Inventário</a>
+        <button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container-md">
+      <div class="page-header page-enter">
+        <h1>📋 Missões</h1>
+        <p id="subtitulo">Carregando suas missões...</p>
+      </div>
+      <div id="missoes-ativas-wrap"></div>
+      <div id="missoes-concluidas-wrap"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config/supabase.js"></script>
+  <script src="js/services/auth.js"></script>
+  <script src="js/services/db-alunos.js"></script>
+  <script src="js/logic/game-logic.js"></script>
+  <script src="js/services/db-missoes.js"></script>
+  <script>
+    const aluno = exigirAlunoLogado();
+
+    async function init() {
+      const missoes = await buscarMissoesDoAluno(aluno.id, aluno.turma);
+      const ativas     = missoes.filter(m => !m.concluida);
+      const concluidas = missoes.filter(m =>  m.concluida);
+
+      document.getElementById('subtitulo').textContent =
+        `${ativas.length} missão${ativas.length!==1?'s':''} ativa${ativas.length!==1?'s':''} · Turma ${aluno.turma}`;
+
+      renderSecao('missoes-ativas-wrap',    ativas,     '⚔️ Missões Ativas',    false);
+      renderSecao('missoes-concluidas-wrap', concluidas, '✅ Missões Concluídas', true);
+    }
+
+    function renderSecao(wrId, lista, titulo, ehConcluida) {
+      const wr = document.getElementById(wrId);
+      if (!lista.length) {
+        if (!ehConcluida) wr.innerHTML = `<div class="empty-missoes"><span class="ei">🗺️</span>Nenhuma missão ativa no momento. Aguarde o professor!</div>`;
+        else wr.innerHTML = '';
+        return;
+      }
+      wr.innerHTML = `<div class="secao-title">${titulo}</div><div class="missoes-grid">${lista.map(m => cartaoMissao(m, ehConcluida)).join('')}</div>`;
+    }
+
+    function cartaoMissao(m, concluida) {
+      const prazoHTML = m.prazo ? prazoTag(m.prazo) : '';
+      return `
+        <div class="missao-card ${concluida?'concluida':''}">
+          <div class="mc-top">
+            <div class="mc-icon">${concluida ? '✅' : '📋'}</div>
+            <div class="mc-info">
+              <h3>${m.titulo}</h3>
+              <div class="mc-meta">
+                <span class="mc-recompensa">✨ +${m.recompensa_xp} XP</span>
+                <span class="mc-turma">${m.turma === 'geral' ? '🌍 Todas as turmas' : `Turma ${m.turma}`}</span>
+              </div>
+            </div>
+            <span class="mc-status-badge ${concluida?'concluida':'pendente'}">${concluida?'✅ Concluída':'⏳ Pendente'}</span>
+          </div>
+          <div class="mc-body">
+            ${m.descricao ? `<p class="mc-desc">${m.descricao}</p>` : ''}
+            ${prazoHTML}
+          </div>
+        </div>`;
+    }
+
+    function prazoTag(prazo) {
+      const d = new Date(prazo);
+      const agora = new Date();
+      const diff  = d - agora;
+      const urgente = diff < 24*60*60*1000 && diff > 0;
+      const expirou = diff <= 0;
+      const txt = expirou ? '⏰ Prazo encerrado'
+        : urgente ? `⚠️ Encerra em menos de 24h`
+        : `📅 Prazo: ${d.toLocaleDateString('pt-BR')}`;
+      return `<span class="mc-prazo ${urgente?'urgente':''}">${txt}</span>`;
+    }
+
+    init();
+  </script>
+</body>
+</html>

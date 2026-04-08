@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG da Turma — Personagem</title>
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    .hero-section {
+      padding: 32px 0;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 700px) { .hero-section { grid-template-columns: 1fr; } }
+
+    /* Character card */
+    .char-card {
+      background: linear-gradient(160deg, var(--bg-card), rgba(34,34,59,0.95));
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-xl);
+      padding: 28px 22px;
+      text-align: center;
+      box-shadow: var(--shadow-card), var(--shadow-gold);
+      position: sticky; top: 80px;
+    }
+
+    .avatar-full-display {
+      width: 200px; height: 200px;
+      margin: 0 auto 16px;
+      border-radius: var(--radius-xl);
+      border: 2px solid var(--border-bright);
+      overflow: hidden;
+      background: var(--bg-deep);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .avatar-full-display:hover {
+      border-color: var(--gold);
+      box-shadow: var(--shadow-gold);
+      transform: scale(1.02);
+    }
+    .avatar-full-display img { width: 100%; height: 100%; object-fit: contain; }
+
+    .char-name {
+      font-size: 1.4rem; margin-bottom: 4px;
+    }
+    .char-meta {
+      display: flex; justify-content: center; gap: 8px;
+      flex-wrap: wrap; margin-bottom: 20px;
+    }
+
+    .stats-block { display: flex; flex-direction: column; gap: 14px; }
+
+    /* Right panel */
+    .right-panel { display: flex; flex-direction: column; gap: 20px; }
+
+    /* Historia */
+    .historia-card blockquote {
+      font-style: italic;
+      color: var(--text-main);
+      font-size: 1.05rem;
+      line-height: 1.8;
+      border-left: 3px solid var(--gold-dim);
+      padding-left: 16px;
+      margin: 0;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 4px;
+      background: var(--bg-deep);
+      border-radius: var(--radius);
+      padding: 4px;
+      border: 1px solid var(--border-dim);
+    }
+    .tab-btn {
+      flex: 1; padding: 8px 12px;
+      font-family: var(--font-title);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: none; border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: calc(var(--radius) - 2px);
+      transition: all var(--transition);
+    }
+    .tab-btn.ativo {
+      background: var(--bg-hover);
+      color: var(--gold-text);
+      border: 1px solid var(--border);
+    }
+    .tab-content { display: none; }
+    .tab-content.ativo { display: block; animation: page-in 0.3s ease; }
+
+    /* Conquistas grid */
+    .conquistas-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 500px) { .conquistas-grid { grid-template-columns: 1fr; } }
+
+    /* Histórico timeline */
+    .historico-lista { display: flex; flex-direction: column; gap: 8px; }
+    .historico-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+      background: var(--bg-deep);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-dim);
+      font-size: 0.9rem;
+    }
+    .historico-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .historico-desc { flex: 1; color: var(--text-main); }
+    .historico-data { color: var(--text-faint); font-size: 0.78rem; font-family: var(--font-title); white-space: nowrap; }
+
+
+
+    /* Eventos banner */
+    .evento-banner-wrap { display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+    .evento-banner {
+      display:flex; align-items:center; gap:12px; padding:12px 16px;
+      border-radius:var(--radius-lg); border:1px solid; animation:page-in 0.4s ease;
+    }
+    .eb-emoji { font-size:1.6rem; flex-shrink:0; }
+    .eb-info strong { font-family:var(--font-title); font-size:0.85rem; display:block; }
+    .eb-info span   { font-size:0.78rem; opacity:0.8; }
+    .eb-pulse { width:8px; height:8px; border-radius:50%; margin-left:auto; flex-shrink:0;
+      animation:pulse-dot 1.5s ease-in-out infinite; }
+
+    /* Inventário badge */
+    .inv-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      font-family:var(--font-title); font-size:0.72rem; letter-spacing:0.06em;
+      padding:3px 10px; border-radius:10px;
+      background:rgba(155,89,182,0.12); border:1px solid rgba(155,89,182,0.4);
+      color:#c39bd3; cursor:pointer; transition:all var(--transition);
+    }
+    .inv-badge:hover { background:rgba(155,89,182,0.2); }
+
+    /* Virtude companion */
+    .virtude-companion {
+      display: flex; align-items: center; gap: 14px;
+      background: linear-gradient(135deg, var(--bg-raised), var(--bg-hover));
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      transition: all var(--transition);
+      cursor: default; margin-top: 12px;
+    }
+    .virtude-companion:hover { border-color: var(--virtude-cor, var(--border-bright)); }
+    .virtude-companion img {
+      width: 56px; height: 56px; object-fit: contain; flex-shrink: 0;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+      animation: float-virtude 3.5s ease-in-out infinite;
+    }
+    @keyframes float-virtude {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-5px); }
+    }
+    .virtude-info strong {
+      font-family: var(--font-title); font-size: 0.88rem;
+      display: block; margin-bottom: 2px;
+    }
+    .virtude-info span { font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; }
+    .virtude-badge-inline {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: var(--font-title); font-size: 0.7rem;
+      letter-spacing: 0.06em; padding: 2px 8px;
+      border-radius: 10px; border: 1px solid currentColor;
+      margin-bottom: 4px;
+    }
+
+    /* Level up animation */
+    .level-up-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.85);
+      animation: fade-in 0.3s ease;
+    }
+    .level-up-overlay.hidden { display: none; }
+    .level-up-box {
+      text-align: center; padding: 48px;
+      animation: modal-in 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+    .level-up-emoji { font-size: 5rem; display: block; animation: bounce 0.6s ease infinite alternate; }
+    @keyframes bounce { to { transform: scale(1.15) translateY(-8px); } }
+    .level-up-box h2 { font-size: 3rem; color: var(--gold-bright); text-shadow: var(--shadow-gold); margin: 12px 0; }
+    .level-up-box p  { color: var(--text-main); font-size: 1.1rem; }
+
+    /* Realtime badge */
+    .realtime-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: var(--font-title); font-size: 0.72rem;
+      letter-spacing: 0.06em; color: var(--xp-green);
+    }
+    .realtime-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--xp-green);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.4; transform:scale(0.7); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-texture"></div>
+
+  <!-- Level up overlay -->
+  <div class="level-up-overlay hidden" id="levelup-overlay">
+    <div class="level-up-box">
+      <span class="level-up-emoji">⬆️</span>
+      <h2>LEVEL UP!</h2>
+      <p id="levelup-texto">Você chegou ao Nível <strong id="levelup-num">2</strong>!</p>
+      <br>
+      <button class="btn btn-primary" onclick="document.getElementById('levelup-overlay').classList.add('hidden')">
+        🎉 Continuar
+      </button>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <span class="nav-brand">⚔️ RPG da Turma</span>
+      <div class="nav-links">
+        <span class="realtime-badge"><span class="realtime-dot"></span>ONLINE</span>
+        <a href="ranking.html" class="btn btn-secondary btn-sm">🏆 Ranking</a>
+        <a href="ranking-virtudes.html" class="btn btn-secondary btn-sm">✨ Virtudes</a>
+        <a href="missoes.html" class="btn btn-secondary btn-sm">📋 Missões</a>
+        <a href="inventario.html" class="btn btn-secondary btn-sm">🎒 Itens</a>
+        <button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container">
+      <div class="hero-section page-enter">
+
+        <!-- Eventos ativos -->
+        <div id="evento-banner-wrap" class="evento-banner-wrap" style="grid-column:1/-1;display:none;"></div>
+
+        <!-- Esquerda: card do personagem -->
+        <div class="char-card">
+          <div class="avatar-full-display" id="avatar-wrap" onclick="abrirAvatarFull()">
+            <img id="avatar-img" src="" alt="Avatar do personagem">
+          </div>
+
+          <h2 class="char-name" id="char-nome">—</h2>
+          <p id="char-apelido" style="font-style:italic;color:var(--text-muted);font-size:0.9rem;margin-top:-6px;margin-bottom:8px;display:none;"></p>
+          <div class="char-meta">
+            <span class="level-badge" id="level-badge">🌱 Nível 1</span>
+            <span class="class-badge" id="class-badge">—</span>
+          </div>
+          <p style="font-size:0.82rem;color:var(--text-muted);font-family:var(--font-title);letter-spacing:0.06em;margin-bottom:16px;" id="turma-badge">Turma —</span>
+
+          <div class="stats-block">
+            <div class="stat-bar-wrap bar-hp" id="hp-bar-wrap">
+              <div class="stat-bar-label">
+                <span>❤️ HP</span>
+                <span class="value" id="hp-valor">100/100</span>
+              </div>
+              <div class="stat-bar-track">
+                <div class="stat-bar-fill" id="hp-fill" style="width:100%"></div>
+              </div>
+            </div>
+
+            <div class="stat-bar-wrap bar-xp">
+              <div class="stat-bar-label">
+                <span>✨ XP</span>
+                <span class="value" id="xp-valor">0/100</span>
+              </div>
+              <div class="stat-bar-track">
+                <div class="stat-bar-fill" id="xp-fill" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <span class="level-badge" id="titulo-badge" style="width:100%;justify-content:center;">🌱 Recruta</span>
+          </div>
+          <!-- Virtude -->
+          <div id="virtude-companion-wrap" class="virtude-companion" style="display:none;">
+            <img id="virtude-img" src="" alt="">
+            <div class="virtude-info">
+              <span id="virtude-badge-inline" class="virtude-badge-inline">✨ Virtude</span>
+              <strong id="virtude-nome-display">—</strong>
+              <span id="virtude-desc-display">—</span>
+            </div>
+          </div>
+
+          <div style="margin-top:12px;">
+            <a href="editar-personagem.html" class="btn btn-secondary btn-sm btn-full">🛠️ Editar Personagem</a>
+            <div id="extras-badges-wrap" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;justify-content:center;"></div>
+          </div>
+        </div>
+
+        <!-- Direita: info tabs -->
+        <div class="right-panel">
+
+          <!-- História -->
+          <div class="card card-gold historia-card">
+            <h3 style="margin-bottom:14px;">📜 Backstory</h3>
+            <p id="char-lema" style="font-style:italic;color:var(--gold-dim);font-size:0.88rem;margin-bottom:12px;display:none;"></p>
+            <blockquote id="char-historia">—</blockquote>
+          </div>
+
+          <!-- Tabs: conquistas e histórico -->
+          <div class="card">
+            <div class="tabs" style="margin-bottom:16px;">
+              <button class="tab-btn ativo" onclick="trocarTab('conquistas', this)">🏅 Conquistas</button>
+              <button class="tab-btn" onclick="trocarTab('historico', this)">📜 Histórico</button>
+            </div>
+
+            <div id="tab-conquistas" class="tab-content ativo">
+              <div class="conquistas-grid" id="conquistas-grid">
+                <div class="loading-state"><div class="spinner"></div>Carregando...</div>
+              </div>
+            </div>
+
+            <div id="tab-historico" class="tab-content">
+              <div class="historico-lista" id="historico-lista">
+                <div class="loading-state"><div class="spinner"></div>Carregando...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config/supabase.js"></script>
+  <script src="js/services/auth.js"></script>
+  <script src="js/services/db-alunos.js"></script>
+  <script src="js/logic/game-logic.js"></script>
+  <script src="js/logic/virtudes.js"></script>
+  <script src="js/services/db-missoes.js"></script>
+  <script src="js/services/db-eventos.js"></script>
+  <script src="js/services/db-itens.js"></script>
+  <script>
+    let alunoAtual = null;
+    let pararRealtime = null;
+
+    async function init() {
+      const sessao = exigirAlunoLogado();
+      if (!sessao) return;
+
+      try {
+        alunoAtual = await buscarAlunoPorId(sessao.id);
+        atualizarSessaoAluno(alunoAtual);
+        renderPersonagem(alunoAtual);
+        carregarConquistas();
+        carregarHistorico();
+        iniciarRealtime();
+        carregarEventos();
+        carregarBadgesExtras();
+      } catch(e) {
+        console.error(e);
+        alert('Erro ao carregar personagem.');
+      }
+    }
+
+    function renderPersonagem(a, statsAntigos = null) {
+      document.getElementById('avatar-img').src = a.avatar_customizado || a.avatar_full || a.avatar || '';
+      const apelidoEl = document.getElementById('char-apelido');
+      if (a.apelido) { apelidoEl.textContent = '"' + a.apelido + '"'; apelidoEl.style.display='block'; } else { apelidoEl.style.display='none'; }
+      document.getElementById('char-nome').textContent = a.nome;
+      document.getElementById('char-historia').textContent = a.historia || '— sem história —';
+      const lemaEl = document.getElementById('char-lema');
+      // Virtude
+      const vd = getVirtude(a.virtude);
+      const vWrap = document.getElementById('virtude-companion-wrap');
+      if (vd) {
+        document.getElementById('virtude-img').src = vd.img;
+        const badge = document.getElementById('virtude-badge-inline');
+        badge.textContent = vd.emoji + ' ' + vd.virtude;
+        badge.style.color = vd.cor;
+        document.getElementById('virtude-nome-display').textContent = vd.nome;
+        document.getElementById('virtude-nome-display').style.color = vd.cor;
+        document.getElementById('virtude-desc-display').textContent = vd.descricao;
+        vWrap.style.display = 'flex';
+        vWrap.style.setProperty('--virtude-cor', vd.cor);
+      } else {
+        vWrap.style.display = 'none';
+      }
+
+      if (a.lema) { lemaEl.textContent = '❝ ' + a.lema + ' ❞'; lemaEl.style.display='block'; } else { lemaEl.style.display='none'; }
+      document.getElementById('turma-badge').textContent = `Turma ${a.turma}`;
+
+      const { titulo, emoji } = tituloDoLevel(a.level);
+      document.getElementById('level-badge').textContent = `${emoji} Nível ${a.level}`;
+      document.getElementById('titulo-badge').textContent = `${emoji} ${titulo}`;
+
+      const classeLower = (a.classe||'').toLowerCase();
+      const classeEl = document.getElementById('class-badge');
+      classeEl.textContent = `${classeEmoji(a.classe)} ${a.classe}`;
+      classeEl.className = `class-badge class-${classeLower}`;
+
+      // Barras
+      const pctHp = porcentagemHp(a.hp);
+      const pctXp = porcentagemXp(a.xp);
+      document.getElementById('hp-fill').style.width = pctHp + '%';
+      document.getElementById('xp-fill').style.width = pctXp + '%';
+      document.getElementById('hp-valor').textContent = `${a.hp}/100`;
+      document.getElementById('xp-valor').textContent = `${a.xp}/100`;
+
+      // HP baixo
+      const wrap = document.getElementById('hp-bar-wrap');
+      wrap.classList.toggle('low', a.hp <= 25);
+
+      // Level up?
+      if (statsAntigos && a.level > statsAntigos.level) {
+        document.getElementById('levelup-num').textContent = a.level;
+        document.getElementById('levelup-overlay').classList.remove('hidden');
+      }
+    }
+
+    function iniciarRealtime() {
+      if (pararRealtime) pararRealtime();
+      pararRealtime = escutarAluno(alunoAtual.id, dadosNovos => {
+        const antigos = { ...alunoAtual };
+        alunoAtual = dadosNovos;
+        atualizarSessaoAluno(dadosNovos);
+        renderPersonagem(dadosNovos, antigos);
+        mostrarInfo('⚡ Seus stats foram atualizados!');
+        carregarHistorico();
+      });
+    }
+
+    async function carregarConquistas() {
+      const grid = document.getElementById('conquistas-grid');
+      try {
+        const desbloqueadas = await buscarConquistasDoAluno(alunoAtual.id);
+        const codigosDesbloqueados = desbloqueadas.map(c => c.codigo);
+
+        grid.innerHTML = '';
+        CONQUISTAS_DEF.forEach(c => {
+          const desbloqueada = codigosDesbloqueados.includes(c.codigo);
+          const el = document.createElement('div');
+          el.className = `conquista-card ${desbloqueada ? 'desbloqueada' : 'locked'}`;
+          el.innerHTML = `
+            <span class="conquista-emoji">${c.emoji}</span>
+            <div class="conquista-info">
+              <strong>${c.nome}</strong>
+              <span>${c.descricao}</span>
+            </div>
+          `;
+          grid.appendChild(el);
+        });
+      } catch(e) {
+        grid.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;padding:16px;">Erro ao carregar conquistas.</p>';
+      }
+    }
+
+    async function carregarHistorico() {
+      const lista = document.getElementById('historico-lista');
+      try {
+        const historico = await buscarHistorico(alunoAtual.id, 20);
+        lista.innerHTML = '';
+
+        if (!historico.length) {
+          lista.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:24px;">Nenhum evento ainda.</p>';
+          return;
+        }
+
+        historico.forEach(ev => {
+          const icones = { xp_ganho:'✨', hp_perdido:'💔', level_up:'⬆️', conquista:'🏅', hp_curado:'💚' };
+          const el = document.createElement('div');
+          el.className = 'historico-item';
+          el.innerHTML = `
+            <span class="historico-icon">${icones[ev.tipo] || '📌'}</span>
+            <span class="historico-desc">${ev.descricao || ev.tipo}</span>
+            <span class="historico-data">${formatarData(ev.created_at)}</span>
+          `;
+          lista.appendChild(el);
+        });
+      } catch(e) {
+        lista.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:24px;">Erro ao carregar histórico.</p>';
+      }
+    }
+
+
+    async function carregarEventos() {
+      try {
+        const eventos = await buscarEventosAtivos(alunoAtual.turma);
+        const wrap = document.getElementById('evento-banner-wrap');
+        if (!eventos.length) { wrap.style.display='none'; return; }
+        wrap.style.display='flex';
+        wrap.innerHTML = eventos.map(ev => `
+          <div class="evento-banner" style="border-color:${ev.cor}50;background:${ev.cor}0f;color:${ev.cor};">
+            <span class="eb-emoji">${ev.emoji}</span>
+            <div class="eb-info">
+              <strong>${ev.nome}</strong>
+              <span>${ev.descricao || ''}</span>
+            </div>
+            <span class="eb-pulse" style="background:${ev.cor};box-shadow:0 0 6px ${ev.cor};"></span>
+          </div>`).join('');
+
+        // Realtime de eventos
+        escutarEventos(alunoAtual.turma, evs => {
+          if (!evs.length) { wrap.style.display='none'; wrap.innerHTML=''; return; }
+          wrap.style.display='flex';
+          wrap.innerHTML = evs.map(ev => `
+            <div class="evento-banner" style="border-color:${ev.cor}50;background:${ev.cor}0f;color:${ev.cor};">
+              <span class="eb-emoji">${ev.emoji}</span>
+              <div class="eb-info"><strong>${ev.nome}</strong><span>${ev.descricao||''}</span></div>
+              <span class="eb-pulse" style="background:${ev.cor};box-shadow:0 0 6px ${ev.cor};"></span>
+            </div>`).join('');
+        });
+      } catch(e) {}
+    }
+
+    async function carregarBadgesExtras() {
+      try {
+        const [missoes, itens] = await Promise.all([
+          buscarMissoesDoAluno(alunoAtual.id, alunoAtual.turma),
+          buscarInventarioDoAluno(alunoAtual.id),
+        ]);
+        const pendentes  = missoes.filter(m => !m.concluida).length;
+        const totalItens = itens.reduce((s,i) => s + i.quantidade, 0);
+
+        // Adiciona badges abaixo do botão editar se necessário
+        const wrap = document.getElementById('extras-badges-wrap');
+        if (!wrap) return;
+        let html = '';
+        if (pendentes > 0)  html += `<a href="missoes.html"    class="inv-badge">📋 ${pendentes} missão${pendentes!==1?'s':''}</a>`;
+        if (totalItens > 0) html += `<a href="inventario.html" class="inv-badge">🎒 ${totalItens} item${totalItens!==1?'s':''}</a>`;
+        wrap.innerHTML = html;
+      } catch(e) {}
+    }
+
+    function trocarTab(nome, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('ativo'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('ativo'));
+      btn.classList.add('ativo');
+      document.getElementById('tab-' + nome).classList.add('ativo');
+    }
+
+    function abrirAvatarFull() {
+      window.open(alunoAtual.avatar_full || alunoAtual.avatar, '_blank');
+    }
+
+    function mostrarInfo(msg) {
+      const c = document.createElement('div');
+      c.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;';
+      const t = document.createElement('div');
+      t.className = 'toast toast-info';
+      t.textContent = msg;
+      c.appendChild(t);
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 3500);
+    }
+
+    window.addEventListener('beforeunload', () => pararRealtime && pararRealtime());
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG da Turma — Ranking das Virtudes</title>
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    .page-header { padding: 36px 0 24px; text-align: center; }
+    .page-header p { color: var(--text-muted); font-family: var(--font-title); font-size: 0.88rem; letter-spacing: 0.1em; }
+
+    /* Top 3 podium */
+    .virtude-podium {
+      display: flex; justify-content: center; align-items: flex-end;
+      gap: 16px; margin-bottom: 40px; flex-wrap: wrap;
+    }
+    .vp-item { display: flex; flex-direction: column; align-items: center; flex: 1; max-width: 220px; min-width: 140px; }
+    .vp-card {
+      width: 100%; border-radius: var(--radius-xl); padding: 20px 14px 16px;
+      border: 2px solid var(--border); background: var(--bg-card);
+      text-align: center; position: relative;
+      transition: transform 0.3s ease;
+    }
+    .vp-card:hover { transform: translateY(-4px); }
+    .vp-pos-1 .vp-card { border-color: #FFD700; box-shadow: 0 0 24px rgba(255,215,0,0.25); }
+    .vp-pos-2 .vp-card { border-color: #A0A0A0; }
+    .vp-pos-3 .vp-card { border-color: #8B6914; }
+
+    .vp-medal { font-size: 1.8rem; display: block; margin-bottom: 4px; }
+    .vp-mascote {
+      width: 90px; height: 90px; object-fit: contain; margin: 0 auto 10px;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));
+      animation: float-v 3.5s ease-in-out infinite;
+    }
+    .vp-pos-1 .vp-mascote { width: 110px; height: 110px; }
+    @keyframes float-v { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+    .vp-nome { font-family: var(--font-title); font-size: 1rem; margin-bottom: 2px; }
+    .vp-virtude { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px; }
+    .vp-score {
+      font-family: var(--font-title); font-size: 1.4rem; font-weight: 700;
+    }
+    .vp-score span { font-size: 0.72rem; color: var(--text-muted); font-weight: 400; display: block; }
+    .vp-membros { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+    .vp-block { width: 100%; border-radius: var(--radius) var(--radius) 0 0; margin-top: 8px; }
+    .vp-pos-1 .vp-block { height: 44px; background: linear-gradient(180deg, rgba(255,215,0,0.25), transparent); }
+    .vp-pos-2 .vp-block { height: 28px; background: linear-gradient(180deg, rgba(160,160,160,0.15), transparent); }
+    .vp-pos-3 .vp-block { height: 18px; background: linear-gradient(180deg, rgba(139,105,20,0.15), transparent); }
+
+    /* Lista */
+    .virtude-lista { display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px; }
+
+    .virtude-row {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 14px 18px;
+      cursor: pointer; transition: all var(--transition);
+    }
+    .virtude-row:hover { border-color: var(--vr-cor, var(--border-bright)); transform: translateX(4px); }
+    .virtude-row.expandida { border-color: var(--vr-cor, var(--border-bright)); background: var(--vr-bg, var(--bg-hover)); }
+
+    .vr-pos { font-family: var(--font-title); font-weight: 700; font-size: 0.9rem; min-width: 30px; text-align: center; color: var(--text-muted); }
+    .vr-mascote { width: 52px; height: 52px; object-fit: contain; flex-shrink: 0; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.35)); }
+    .vr-info { flex: 1; min-width: 0; }
+    .vr-nome { font-family: var(--font-title); font-size: 0.95rem; margin-bottom: 2px; }
+    .vr-virtude { font-size: 0.78rem; color: var(--text-muted); }
+    .vr-right { text-align: right; flex-shrink: 0; }
+    .vr-score { font-family: var(--font-title); font-size: 1.1rem; font-weight: 700; }
+    .vr-score small { font-size: 0.7rem; color: var(--text-muted); font-weight: 400; display: block; }
+    .vr-arrow { font-size: 0.75rem; color: var(--text-faint); margin-left: 8px; transition: transform 0.3s ease; }
+    .virtude-row.expandida .vr-arrow { transform: rotate(180deg); }
+
+    /* Membros expandidos */
+    .membros-wrap {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+    .membros-wrap.aberto { max-height: 1000px; }
+    .membros-lista {
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 12px 16px 4px;
+      border-top: 1px solid var(--border-dim);
+      margin-top: 10px;
+    }
+    .membro-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px;
+      background: var(--bg-deep); border-radius: var(--radius);
+      font-size: 0.85rem;
+    }
+    .membro-avatar { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--bg-surface); object-fit: contain; }
+    .membro-nome { flex: 1; font-family: var(--font-title); font-size: 0.82rem; color: var(--text-bright); }
+    .membro-turma { font-size: 0.72rem; color: var(--text-faint); }
+    .membro-level { font-family: var(--font-title); font-size: 0.78rem; color: var(--gold-text); }
+
+    /* Barra de progresso da virtude */
+    .vr-barra-wrap { margin-top: 6px; }
+    .vr-barra-track { height: 5px; background: var(--bg-void); border-radius: 3px; overflow: hidden; }
+    .vr-barra-fill { height: 100%; border-radius: 3px; transition: width 1s ease 0.2s; }
+
+    /* Filtro turma */
+    .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; justify-content: center; }
+    .filter-row select { width: auto; }
+
+    /* Empty */
+    .empty-virtude { text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-title); font-size: 0.85rem; letter-spacing: 0.08em; }
+  </style>
+</head>
+<body>
+  <div class="bg-texture"></div>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <span class="nav-brand">⚔️ RPG da Turma</span>
+      <div class="nav-links" id="nav-actions"></div>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container-md">
+
+      <div class="page-header page-enter">
+        <h1>✨ Ranking das Virtudes</h1>
+        <p>Equipes dos Virtoons — soma de níveis de todos os membros</p>
+      </div>
+
+      <div class="filter-row page-enter">
+        <label style="font-family:var(--font-title);font-size:0.78rem;letter-spacing:0.08em;text-transform:uppercase;">Turma:</label>
+        <select id="filtro-turma" onchange="carregarRanking()">
+          <option value="geral">Todas as Turmas</option>
+          <option value="6A">6A</option>
+          <option value="6B">6B</option>
+          <option value="7A">7A</option>
+          <option value="7B">7B</option>
+        </select>
+        <a href="ranking.html" class="btn btn-secondary btn-sm">🏆 Ranking Geral</a>
+      </div>
+
+      <div id="podium-wrap" class="page-enter"></div>
+      <div id="virtude-lista" class="virtude-lista page-enter"></div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config/supabase.js"></script>
+  <script src="js/services/auth.js"></script>
+  <script src="js/services/db-alunos.js"></script>
+  <script src="js/logic/game-logic.js"></script>
+  <script src="js/logic/virtudes.js"></script>
+  <script>
+    // Nav
+    const alunoLogado = getAlunoLogado();
+    const profLogado  = getProfessorLogado();
+    const navEl = document.getElementById('nav-actions');
+    if (alunoLogado)     navEl.innerHTML = `<a href="personagem.html" class="btn btn-secondary btn-sm">⚔️ Meu Personagem</a><button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>`;
+    else if (profLogado) navEl.innerHTML = `<a href="painel-professor.html" class="btn btn-secondary btn-sm">🏰 Painel</a><button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>`;
+    else                 navEl.innerHTML = `<a href="login.html" class="btn btn-primary btn-sm">Entrar</a>`;
+
+    let rankingData = []; // [{id, totalLevel, membros, membrosLista}]
+
+    async function carregarRanking() {
+      const turma = document.getElementById('filtro-turma').value;
+      document.getElementById('podium-wrap').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+      document.getElementById('virtude-lista').innerHTML = '';
+
+      try {
+        // Busca todos os alunos com virtude, filtra por turma se necessário
+        let query = db.from('alunos').select('id,nome,turma,virtude,level,xp,avatar,avatar_full,avatar_customizado,classe').not('virtude','is',null);
+        if (turma !== 'geral') query = query.eq('turma', turma);
+        const { data: alunos } = await query;
+
+        // Agrupa por virtude
+        const grupos = {};
+        (alunos || []).forEach(a => {
+          if (!a.virtude) return;
+          if (!grupos[a.virtude]) grupos[a.virtude] = { totalLevel: 0, membros: 0, lista: [] };
+          grupos[a.virtude].totalLevel += (a.level || 1);
+          grupos[a.virtude].membros++;
+          grupos[a.virtude].lista.push(a);
+        });
+
+        // Monta array ordenado
+        rankingData = Object.entries(grupos)
+          .map(([id, g]) => ({ id, totalLevel: g.totalLevel, membros: g.membros, lista: g.lista }))
+          .sort((a, b) => b.totalLevel - a.totalLevel);
+
+        if (!rankingData.length) {
+          document.getElementById('podium-wrap').innerHTML = '';
+          document.getElementById('virtude-lista').innerHTML =
+            '<div class="empty-virtude">🌱 Nenhum aluno escolheu uma virtude ainda.</div>';
+          return;
+        }
+
+        const maxScore = rankingData[0]?.totalLevel || 1;
+        renderPodium(rankingData.slice(0,3), maxScore);
+        renderLista(rankingData.slice(3), maxScore, 4);
+
+      } catch(e) {
+        document.getElementById('podium-wrap').innerHTML = '';
+        document.getElementById('virtude-lista').innerHTML = '<p style="text-align:center;color:var(--ember-bright);padding:40px;">Erro ao carregar.</p>';
+      }
+    }
+
+    function renderPodium(top3, maxScore) {
+      if (!top3.length) { document.getElementById('podium-wrap').innerHTML=''; return; }
+      // Ordem visual: 2º | 1º | 3º
+      const ordem = [top3[1], top3[0], top3[2]].filter(Boolean);
+      const clsMap = { 0: top3[1]?.id, 1: top3[0]?.id, 2: top3[2]?.id };
+
+      document.getElementById('podium-wrap').innerHTML = `<div class="virtude-podium">${
+        ordem.map(item => {
+          const vd   = getVirtude(item.id);
+          const pos  = top3.indexOf(item) + 1;
+          const cls  = `vp-pos-${pos}`;
+          const med  = pos===1 ? '🥇' : pos===2 ? '🥈' : '🥉';
+          if (!vd) return '';
+          return `
+            <div class="vp-item ${cls}">
+              <div class="vp-card" style="--vp-cor:${vd.cor}; border-color:${pos===1?'#FFD700':pos===2?'#A0A0A0':'#8B6914'};">
+                <span class="vp-medal">${med}</span>
+                <img class="vp-mascote" src="${vd.img}" alt="${vd.nome}">
+                <p class="vp-nome" style="color:${vd.cor}">${vd.nome}</p>
+                <p class="vp-virtude">${vd.emoji} ${vd.virtude}</p>
+                <p class="vp-score" style="color:${vd.cor}">
+                  ${item.totalLevel}
+                  <span>níveis acumulados</span>
+                </p>
+                <p class="vp-membros">${item.membros} membro${item.membros!==1?'s':''}</p>
+              </div>
+              <div class="vp-block"></div>
+            </div>`;
+        }).join('')
+      }</div>`;
+    }
+
+    function renderLista(items, maxScore, startPos) {
+      const lista = document.getElementById('virtude-lista');
+      lista.innerHTML = '';
+
+      items.forEach((item, i) => {
+        const vd  = getVirtude(item.id);
+        if (!vd) return;
+        const pos = startPos + i;
+        const pct = Math.round((item.totalLevel / maxScore) * 100);
+        const meuVirtoon = alunoLogado && alunoLogado.virtude === item.id;
+
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+          <div class="virtude-row ${meuVirtoon?'expandida':''}"
+               style="--vr-cor:${vd.cor};--vr-bg:${vd.corFundo};"
+               onclick="toggleMembros('${item.id}', this)">
+            <span class="vr-pos">#${pos}</span>
+            <img class="vr-mascote" src="${vd.img}" alt="${vd.nome}">
+            <div class="vr-info">
+              <p class="vr-nome" style="color:${vd.cor}">${vd.nome} ${meuVirtoon?'<span style="font-size:0.72rem;color:var(--gold-text);">(seu time)</span>':''}</p>
+              <p class="vr-virtude">${vd.emoji} ${vd.virtude} · ${item.membros} membro${item.membros!==1?'s':''}</p>
+              <div class="vr-barra-wrap">
+                <div class="vr-barra-track">
+                  <div class="vr-barra-fill" style="width:${pct}%;background:${vd.cor};box-shadow:0 0 6px ${vd.cor}60;"></div>
+                </div>
+              </div>
+            </div>
+            <div class="vr-right">
+              <p class="vr-score" style="color:${vd.cor}">${item.totalLevel}<small>níveis</small></p>
+            </div>
+            <span class="vr-arrow">▼</span>
+          </div>
+          <div class="membros-wrap ${meuVirtoon?'aberto':''}" id="membros-${item.id}">
+            <div class="membros-lista" id="membros-lista-${item.id}">
+              <div class="loading-state" style="padding:12px;"><div class="spinner" style="width:24px;height:24px;"></div></div>
+            </div>
+          </div>`;
+        lista.appendChild(wrap);
+
+        // Se é o virtoon do aluno logado, carrega membros imediatamente
+        if (meuVirtoon) carregarMembros(item.id, item.lista);
+      });
+    }
+
+    function toggleMembros(virtudeId, rowEl) {
+      rowEl.classList.toggle('expandida');
+      const wrap = document.getElementById(`membros-${virtudeId}`);
+      const isAberto = wrap.classList.toggle('aberto');
+      if (isAberto) {
+        const item = rankingData.find(r => r.id === virtudeId);
+        if (item) carregarMembros(virtudeId, item.lista);
+      }
+    }
+
+    function carregarMembros(virtudeId, lista) {
+      const el = document.getElementById(`membros-lista-${virtudeId}`);
+      if (!el) return;
+
+      const sorted = [...lista].sort((a,b) => (b.level - a.level) || (b.xp - a.xp));
+      el.innerHTML = sorted.map((a, i) => {
+        const avatar = a.avatar_customizado || a.avatar_full || a.avatar || '';
+        const { emoji } = tituloDoLevel(a.level);
+        return `
+          <div class="membro-item">
+            <span style="font-family:var(--font-title);font-size:0.78rem;min-width:22px;text-align:center;color:var(--text-muted);">#${i+1}</span>
+            <img class="membro-avatar" src="${avatar}" alt="${a.nome}"
+                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><text y=%221em%22 font-size=%2228%22>⚔️</text></svg>'">
+            <span class="membro-nome">${a.nome}</span>
+            <span class="membro-turma">${a.turma}</span>
+            <span class="membro-level">${emoji} Nv.${a.level}</span>
+          </div>`;
+      }).join('');
+    }
+
+    carregarRanking();
+  </script>
+</body>
+</html>

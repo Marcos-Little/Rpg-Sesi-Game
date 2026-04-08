@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG da Turma — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+
+    .login-scene {
+      position: relative; z-index: 2;
+      width: 100%; max-width: 420px;
+      padding: 0 20px;
+      animation: page-in 0.6s cubic-bezier(0.4,0,0.2,1) forwards;
+    }
+
+    .login-logo {
+      text-align: center; margin-bottom: 36px;
+    }
+    .login-logo .crest {
+      font-size: 4.5rem; display: block; margin-bottom: 12px;
+      filter: drop-shadow(0 0 20px rgba(212,160,23,0.5));
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+    .login-logo h1 {
+      font-size: 2.2rem; letter-spacing: 0.12em;
+      text-shadow: 0 0 30px var(--gold-glow);
+      margin-bottom: 4px;
+    }
+    .login-logo p { color: var(--text-muted); font-size: 0.9rem; letter-spacing: 0.1em; font-family: var(--font-title); }
+
+    .login-card {
+      background: linear-gradient(160deg, var(--bg-card) 0%, rgba(34,34,59,0.95) 100%);
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-xl);
+      padding: 36px 32px;
+      box-shadow: var(--shadow-card), var(--shadow-gold), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .login-card h2 {
+      font-size: 0.9rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--text-muted);
+      text-align: center; margin-bottom: 28px;
+    }
+
+    .form-stack { display: flex; flex-direction: column; gap: 18px; }
+
+    .input-icon-wrap { position: relative; }
+    .input-icon-wrap .icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: var(--text-faint); font-size: 1rem; pointer-events: none;
+    }
+    .input-icon-wrap input { padding-left: 42px; }
+
+    .btn-login-wrap { margin-top: 8px; }
+
+    .msg-erro {
+      background: rgba(192,57,43,0.12);
+      border: 1px solid var(--ember-dim);
+      border-radius: var(--radius);
+      color: var(--ember-bright);
+      padding: 10px 14px;
+      font-family: var(--font-title);
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    .login-footer {
+      text-align: center; margin-top: 20px;
+      color: var(--text-faint); font-size: 0.82rem;
+      font-family: var(--font-title); letter-spacing: 0.06em;
+    }
+
+    /* Decorative runes */
+    .rune-row {
+      display: flex; justify-content: center; gap: 16px;
+      margin-bottom: 24px; opacity: 0.2;
+      font-size: 1.2rem; color: var(--gold);
+      letter-spacing: 0.3em;
+    }
+
+    /* Stars background */
+    .stars {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .star {
+      position: absolute; background: white; border-radius: 50%;
+      animation: twinkle var(--dur, 3s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+    }
+    @keyframes twinkle {
+      0%,100% { opacity: 0.1; transform: scale(1); }
+      50%      { opacity: 0.8; transform: scale(1.4); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-texture"></div>
+  <div class="stars" id="stars"></div>
+
+  <div class="login-scene">
+    <div class="login-logo">
+      <span class="crest">⚔️</span>
+      <h1>RPG da Turma</h1>
+      <p>Sistema de Gamificação Educacional</p>
+    </div>
+
+    <div class="login-card">
+      <div class="rune-row">ᚱ ᚦ ᚢ ᚾ ᛁ ᚲ</div>
+      <h2>Identifique-se, Herói</h2>
+
+      <form class="form-stack" id="form-login">
+        <div class="input-group">
+          <label for="usuario">Usuário</label>
+          <div class="input-icon-wrap">
+            <span class="icon">👤</span>
+            <input type="text" id="usuario" placeholder="Seu nome de usuário" autocomplete="username" required>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="senha">Senha</label>
+          <div class="input-icon-wrap">
+            <span class="icon">🔒</span>
+            <input type="password" id="senha" placeholder="Sua senha secreta" autocomplete="current-password" required>
+          </div>
+        </div>
+
+        <p class="msg-erro hidden" id="msg-erro"></p>
+
+        <div class="btn-login-wrap">
+          <button type="submit" class="btn btn-primary btn-full btn-lg" id="btn-entrar">
+            ⚔️ Entrar no Reino
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <p class="login-footer">⚔️ RPG da Turma &mdash; Turmas 6A · 6B · 7A · 7B</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config/supabase.js"></script>
+  <script src="js/services/auth.js"></script>
+  <script>
+    // Gera estrelas decorativas
+    const starsEl = document.getElementById('stars');
+    for (let i = 0; i < 80; i++) {
+      const s = document.createElement('div');
+      const size = Math.random() * 2.5 + 0.5;
+      s.className = 'star';
+      s.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:${Math.random()*100}%; top:${Math.random()*100}%;
+        --dur:${(Math.random()*4+2).toFixed(1)}s;
+        --delay:-${(Math.random()*6).toFixed(1)}s;
+      `;
+      starsEl.appendChild(s);
+    }
+
+    // Login
+    document.getElementById('form-login').addEventListener('submit', async e => {
+      e.preventDefault();
+      const usuario = document.getElementById('usuario').value;
+      const senha   = document.getElementById('senha').value;
+      const btn     = document.getElementById('btn-entrar');
+      const erro    = document.getElementById('msg-erro');
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Verificando...';
+      erro.classList.add('hidden');
+
+      try {
+        const res = await login(usuario, senha);
+
+        if (res.erro) {
+          erro.textContent = res.erro;
+          erro.classList.remove('hidden');
+          btn.disabled = false;
+          btn.textContent = '⚔️ Entrar no Reino';
+          return;
+        }
+
+        if (res.tipo === 'professor') {
+          window.location.href = 'painel-professor.html';
+          return;
+        }
+
+        window.location.href = res.dados.personagem_criado
+          ? 'personagem.html'
+          : 'criar-personagem.html';
+
+      } catch(err) {
+        erro.textContent = 'Erro de conexão. Verifique o Supabase.';
+        erro.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = '⚔️ Entrar no Reino';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG da Turma — Criar Personagem</title>
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    .page-header {
+      padding: 40px 0 24px;
+      text-align: center;
+    }
+    .page-header h1 { margin-bottom: 6px; }
+    .page-header p { color: var(--text-muted); font-family: var(--font-title); font-size: 0.88rem; letter-spacing: 0.1em; }
+
+    .creation-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 28px;
+      padding-bottom: 60px;
+      align-items: start;
+    }
+
+    @media (max-width: 700px) {
+      .creation-layout { grid-template-columns: 1fr; }
+      .avatar-panel { order: -1; }
+    }
+
+    /* Avatar Panel */
+    .avatar-panel {
+      position: sticky; top: 80px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    .avatar-preview-card {
+      background: linear-gradient(160deg, var(--bg-card), var(--bg-raised));
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-xl);
+      padding: 28px 20px;
+      text-align: center;
+      box-shadow: var(--shadow-card), var(--shadow-gold);
+    }
+
+    .avatar-full-wrap {
+      width: 200px; height: 200px;
+      margin: 0 auto 16px;
+      border-radius: var(--radius-xl);
+      border: 2px solid var(--border-bright);
+      overflow: hidden;
+      background: var(--bg-deep);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+
+    .avatar-full-wrap img {
+      width: 100%; height: 100%;
+      object-fit: contain;
+      transition: opacity 0.3s ease;
+    }
+
+    .avatar-placeholder {
+      font-size: 5rem; opacity: 0.2;
+      font-family: var(--font-title);
+    }
+
+    .nome-preview {
+      font-family: var(--font-title);
+      font-size: 1.1rem;
+      color: var(--gold-text);
+      margin-bottom: 4px;
+    }
+    .classe-preview {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-family: var(--font-title);
+      letter-spacing: 0.08em;
+    }
+
+    /* Stats preview */
+    .stats-preview {
+      display: flex; flex-direction: column; gap: 12px;
+      background: var(--bg-deep);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      border: 1px solid var(--border-dim);
+    }
+
+    /* Form panel */
+    .form-panel { display: flex; flex-direction: column; gap: 20px; }
+
+    .form-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .form-section-title {
+      font-family: var(--font-title);
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .form-section-title::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* Class selector grid */
+    .class-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 500px) { .class-grid { grid-template-columns: repeat(2,1fr); } }
+
+    .class-option {
+      position: relative;
+    }
+    .class-option input[type="radio"] {
+      position: absolute; opacity: 0; width: 0; height: 0;
+    }
+    .class-option label {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 14px 8px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--font-title);
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .class-option label .class-icon { font-size: 1.8rem; }
+    .class-option input:checked + label {
+      border-color: var(--gold);
+      background: rgba(212,160,23,0.1);
+      color: var(--gold-text);
+      box-shadow: 0 0 0 2px var(--gold-glow);
+    }
+    .class-option label:hover { border-color: var(--border-bright); color: var(--text-bright); }
+
+    /* Gender selector */
+    .gender-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .gender-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .gender-option { position: relative; }
+    .gender-option label {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      background: var(--bg-deep);
+      border: 1px solid var(--border-dim);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--font-title);
+      font-size: 0.82rem;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+    .gender-option input:checked + label {
+      border-color: var(--gold);
+      background: rgba(212,160,23,0.1);
+      color: var(--gold-text);
+    }
+    .gender-option label:hover { border-color: var(--border-bright); color: var(--text-bright); }
+
+    .char-count {
+      font-size: 0.78rem;
+      color: var(--text-faint);
+      text-align: right;
+      font-family: var(--font-title);
+    }
+
+
+    /* Virtude selector */
+    .virtude-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 600px) { .virtude-grid { grid-template-columns: repeat(3,1fr); } }
+    @media (max-width: 420px) { .virtude-grid { grid-template-columns: repeat(2,1fr); } }
+
+    .virtude-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .virtude-option { position: relative; }
+    .virtude-option label {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 10px 6px;
+      background: var(--bg-deep); border: 2px solid var(--border-dim);
+      border-radius: var(--radius); cursor: pointer;
+      transition: all var(--transition);
+      text-align: center;
+    }
+    .virtude-option label img {
+      width: 52px; height: 52px; object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+      transition: transform 0.2s ease;
+    }
+    .virtude-option label:hover img { transform: scale(1.12); }
+    .virtude-option label span {
+      font-family: var(--font-title); font-size: 0.68rem;
+      letter-spacing: 0.04em; color: var(--text-muted);
+      text-transform: uppercase; line-height: 1.2;
+    }
+    .virtude-option input:checked + label {
+      border-color: var(--virtude-cor, var(--gold));
+      background: var(--virtude-bg, rgba(212,160,23,0.1));
+      box-shadow: 0 0 0 2px var(--virtude-cor, var(--gold-glow));
+    }
+    .virtude-option input:checked + label span { color: var(--text-bright); }
+    .virtude-option label:hover { border-color: var(--border-bright); }
+
+    /* Preview virtude no card lateral */
+    .virtude-preview-wrap {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg-deep); border-radius: var(--radius);
+      padding: 12px; border: 1px solid var(--border-dim);
+      margin-top: 8px; transition: all var(--transition);
+    }
+    .virtude-preview-wrap.ativa { border-color: var(--border-bright); }
+    .virtude-preview-wrap img { width: 48px; height: 48px; object-fit: contain; }
+    .virtude-preview-info strong {
+      font-family: var(--font-title); font-size: 0.85rem; color: var(--gold-text); display: block;
+    }
+    .virtude-preview-info span { font-size: 0.78rem; color: var(--text-muted); }
+
+    .submit-area { padding: 8px 0 0; }
+  </style>
+</head>
+<body>
+  <div class="bg-texture"></div>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <span class="nav-brand">⚔️ RPG da Turma</span>
+      <div class="nav-links">
+        <span id="nav-nome" style="color:var(--text-muted);font-family:var(--font-title);font-size:0.82rem;"></span>
+        <button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container">
+      <div class="page-header page-enter">
+        <h1>⚔️ Forjar Personagem</h1>
+        <p>Escolha sua identidade no reino</p>
+      </div>
+
+      <div class="creation-layout page-enter">
+
+        <!-- Painel esquerdo: preview -->
+        <div class="avatar-panel">
+          <div class="avatar-preview-card">
+            <div class="avatar-full-wrap">
+              <img id="avatar-full-img" src="" alt="Avatar" style="display:none;">
+              <div class="avatar-placeholder" id="avatar-placeholder">⚔️</div>
+            </div>
+            <p class="nome-preview" id="preview-nome">— Seu Nome —</p>
+            <p class="classe-preview" id="preview-classe">Escolha sua classe</p>
+          </div>
+
+          <div class="stats-preview">
+            <div class="stat-bar-wrap bar-hp">
+              <div class="stat-bar-label"><span>❤️ HP</span><span class="value">100/100</span></div>
+              <div class="stat-bar-track"><div class="stat-bar-fill" style="width:100%"></div></div>
+            </div>
+            <div class="stat-bar-wrap bar-xp">
+              <div class="stat-bar-label"><span>✨ XP</span><span class="value">0/100</span></div>
+              <div class="stat-bar-track"><div class="stat-bar-fill" style="width:0%"></div></div>
+            </div>
+            <div style="display:flex; justify-content:center; margin-top:4px;">
+              <span class="level-badge">🌱 Nível 1 · Recruta</span>
+            </div>
+          </div>
+        </div>
+
+          <!-- Preview da Virtude -->
+          <div class="virtude-preview-wrap" id="virtude-preview-wrap">
+            <img id="virtude-preview-img" src="" alt="" style="display:none;">
+            <div class="virtude-preview-info">
+              <strong id="virtude-preview-nome" style="color:var(--text-faint);">Escolha sua virtude</strong>
+              <span id="virtude-preview-desc"></span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Painel direito: formulário -->
+        <form id="form-personagem" class="form-panel">
+
+          <!-- Classe -->
+          <div class="form-section">
+            <div class="form-section-title">⚔️ Classe</div>
+            <div class="class-grid">
+              <div class="class-option">
+                <input type="radio" name="classe" id="c-guerreiro" value="Guerreiro">
+                <label for="c-guerreiro"><span class="class-icon">⚔️</span>Guerreiro</label>
+              </div>
+              <div class="class-option">
+                <input type="radio" name="classe" id="c-mago" value="Mago">
+                <label for="c-mago"><span class="class-icon">🔮</span>Mago</label>
+              </div>
+              <div class="class-option">
+                <input type="radio" name="classe" id="c-arqueiro" value="Arqueiro">
+                <label for="c-arqueiro"><span class="class-icon">🏹</span>Arqueiro</label>
+              </div>
+              <div class="class-option">
+                <input type="radio" name="classe" id="c-curandeiro" value="Curandeiro">
+                <label for="c-curandeiro"><span class="class-icon">💚</span>Curandeiro</label>
+              </div>
+              <div class="class-option">
+                <input type="radio" name="classe" id="c-ladino" value="Ladino">
+                <label for="c-ladino"><span class="class-icon">🗡️</span>Ladino</label>
+              </div>
+              <div class="class-option">
+                <input type="radio" name="classe" id="c-bardo" value="Bardo">
+                <label for="c-bardo"><span class="class-icon">🎵</span>Bardo</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gênero -->
+          <div class="form-section">
+            <div class="form-section-title">🧍 Aparência</div>
+            <div class="gender-grid">
+              <div class="gender-option">
+                <input type="radio" name="genero" id="g-masculino" value="masculino">
+                <label for="g-masculino">🧔 Masculino</label>
+              </div>
+              <div class="gender-option">
+                <input type="radio" name="genero" id="g-feminino" value="feminino">
+                <label for="g-feminino">👩 Feminino</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- História -->
+          <div class="form-section">
+            <div class="form-section-title">📜 Backstory</div>
+            <div class="input-group">
+              <label for="historia">Conte sua história de origem</label>
+              <textarea id="historia" placeholder="Era uma vez, em um reino distante..." maxlength="400" rows="5"></textarea>
+              <span class="char-count"><span id="char-count">0</span>/400</span>
+            </div>
+          </div>
+
+
+          <!-- Virtude -->
+          <div class="form-section">
+            <div class="form-section-title">✨ Virtude Guardiã</div>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:14px;">
+              Escolha o Virtoon que acompanhará sua jornada:
+            </p>
+            <div class="virtude-grid" id="virtude-grid">
+              <!-- preenchido por JS -->
+            </div>
+          </div>
+
+          <div class="submit-area">
+            <button type="submit" class="btn btn-primary btn-full btn-lg" id="btn-criar">
+              🔥 Forjar Personagem
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config/supabase.js"></script>
+  <script src="js/services/auth.js"></script>
+  <script src="js/services/db-alunos.js"></script>
+  <script src="js/logic/game-logic.js"></script>
+  <script src="js/logic/virtudes.js"></script>
+  <script>
+    const aluno = exigirAlunoLogado();
+    if (!aluno) throw new Error();
+
+    // ── Renderiza grid de virtudes ──────────────────────────
+    function renderVirtudeGrid() {
+      const grid = document.getElementById('virtude-grid');
+      grid.innerHTML = '';
+      VIRTUDES.forEach(v => {
+        const wrap = document.createElement('div');
+        wrap.className = 'virtude-option';
+        wrap.innerHTML = `
+          <input type="radio" name="virtude" id="v-${v.id}" value="${v.id}"
+                 style="--virtude-cor:${v.cor};--virtude-bg:${v.corFundo}">
+          <label for="v-${v.id}" style="--virtude-cor:${v.cor};--virtude-bg:${v.corFundo};">
+            <img src="${v.img}" alt="${v.nome}" loading="lazy">
+            <span>${v.nome}</span>
+          </label>
+        `;
+        wrap.querySelector('input').addEventListener('change', () => atualizarPreviewVirtude(v));
+        grid.appendChild(wrap);
+      });
+    }
+
+    function atualizarPreviewVirtude(v) {
+      const wrap = document.getElementById('virtude-preview-wrap');
+      const img  = document.getElementById('virtude-preview-img');
+      const nome = document.getElementById('virtude-preview-nome');
+      const desc = document.getElementById('virtude-preview-desc');
+      img.src = v.img;
+      img.style.display = 'block';
+      nome.textContent = v.nome + ' — ' + v.virtude;
+      nome.style.color = v.cor;
+      desc.textContent = v.descricao;
+      wrap.classList.add('ativa');
+      wrap.style.borderColor = v.cor;
+    }
+
+    renderVirtudeGrid();
+
+    document.getElementById('nav-nome').textContent = aluno.nome;
+    document.getElementById('preview-nome').textContent = aluno.nome;
+
+    // Preview em tempo real
+    function atualizarPreview() {
+      const classe = document.querySelector('input[name="classe"]:checked')?.value;
+      const genero = document.querySelector('input[name="genero"]:checked')?.value;
+      const placeholder = document.getElementById('avatar-placeholder');
+      const img = document.getElementById('avatar-full-img');
+
+      if (classe) {
+        document.getElementById('preview-classe').textContent = `${classeEmoji(classe)} ${classe}`;
+      }
+
+      if (classe && genero) {
+        const { avatarFull } = gerarAvatares(aluno.nome, classe, genero);
+        img.src = avatarFull;
+        img.style.display = 'block';
+        placeholder.style.display = 'none';
+        img.onerror = () => {
+          img.style.display = 'none';
+          placeholder.style.display = 'block';
+        };
+      }
+    }
+
+    document.querySelectorAll('input[name="classe"], input[name="genero"]')
+      .forEach(r => r.addEventListener('change', atualizarPreview));
+
+    // Contador de caracteres
+    document.getElementById('historia').addEventListener('input', function() {
+      document.getElementById('char-count').textContent = this.value.length;
+    });
+
+    // Submit
+    document.getElementById('form-personagem').addEventListener('submit', async e => {
+      e.preventDefault();
+      const classe  = document.querySelector('input[name="classe"]:checked')?.value;
+      const genero  = document.querySelector('input[name="genero"]:checked')?.value;
+      const historia = document.getElementById('historia').value.trim();
+
+      const virtude  = document.querySelector('input[name="virtude"]:checked')?.value;
+      if (!classe)   return mostrarErro('Escolha uma classe!');
+      if (!genero)   return mostrarErro('Escolha a aparência!');
+      if (!virtude)  return mostrarErro('Escolha sua virtude guardiã!');
+      if (!historia) return mostrarErro('Escreva sua história!');
+
+      const btn = document.getElementById('btn-criar');
+      btn.disabled = true;
+      btn.textContent = '⏳ Forjando...';
+
+      try {
+        const { avatar, avatarFull } = gerarAvatares(aluno.nome, classe, genero);
+        const atualizado = await salvarPersonagem(aluno.id, { classe, genero, historia, avatar, avatarFull, virtude });
+        atualizarSessaoAluno(atualizado);
+        mostrarSucesso('Personagem criado! Bem-vindo ao reino! 🎉');
+        setTimeout(() => window.location.href = 'personagem.html', 1600);
+      } catch(err) {
+        mostrarErro('Erro ao salvar. Tente novamente.');
+        btn.disabled = false;
+        btn.textContent = '🔥 Forjar Personagem';
+      }
+    });
+
+    // helpers
+    function mostrarErro(msg) {
+      const d = document.createElement('div');
+      d.className = 'toast-container';
+      d.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;';
+      const t = document.createElement('div');
+      t.className = 'toast toast-erro';
+      t.textContent = '❌ ' + msg;
+      d.appendChild(t);
+      document.body.appendChild(d);
+      setTimeout(() => d.remove(), 3000);
+    }
+    function mostrarSucesso(msg) {
+      const d = document.createElement('div');
+      d.className = 'toast-container';
+      d.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;';
+      const t = document.createElement('div');
+      t.className = 'toast toast-sucesso';
+      t.textContent = msg;
+      d.appendChild(t);
+      document.body.appendChild(d);
+      setTimeout(() => d.remove(), 3500);
+    }
+  </script>
+</body>
+</html>

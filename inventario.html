@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG da Turma — Inventário</title>
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    .page-header { padding:32px 0 20px; }
+    .page-header p { color:var(--text-muted); font-family:var(--font-title); font-size:0.88rem; letter-spacing:0.1em; }
+
+    /* Inventário grid */
+    .inv-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; margin-bottom:40px; }
+
+    .item-card {
+      background:var(--bg-card); border:2px solid var(--border-dim);
+      border-radius:var(--radius-lg); padding:18px 14px; text-align:center;
+      position:relative; transition:all var(--transition);
+      cursor:pointer;
+    }
+    .item-card:hover { transform:translateY(-3px); border-color:var(--ic-cor, var(--border-bright)); box-shadow:0 8px 24px rgba(0,0,0,0.4); }
+    .item-card.esgotado { opacity:0.45; cursor:not-allowed; filter:grayscale(0.6); }
+    .item-card.esgotado:hover { transform:none; }
+
+    .ic-raridade-bar {
+      position:absolute; top:0; left:0; right:0; height:3px;
+      border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+      background:var(--ic-cor, var(--border-dim));
+    }
+    .ic-emoji { font-size:2.8rem; display:block; margin:8px 0 12px; line-height:1; }
+    .ic-nome { font-family:var(--font-title); font-size:0.88rem; color:var(--gold-text); margin-bottom:4px; }
+    .ic-desc { font-size:0.78rem; color:var(--text-muted); line-height:1.5; margin-bottom:10px; }
+    .ic-qtd {
+      display:inline-flex; align-items:center; gap:5px;
+      font-family:var(--font-title); font-size:0.82rem;
+      padding:4px 10px; border-radius:20px;
+      border:1px solid var(--ic-cor, var(--border-dim));
+      color:var(--ic-cor, var(--text-muted));
+      background:rgba(0,0,0,0.2);
+    }
+    .ic-raridade-tag {
+      display:block; font-family:var(--font-title); font-size:0.65rem;
+      letter-spacing:0.1em; text-transform:uppercase;
+      color:var(--ic-cor); margin-bottom:8px;
+    }
+    .btn-usar {
+      width:100%; margin-top:8px; font-size:0.75rem; padding:7px;
+    }
+
+    /* Efeito ativo */
+    .efeito-ativo-banner {
+      background:linear-gradient(135deg, rgba(155,89,182,0.12), rgba(52,152,219,0.08));
+      border:1px solid rgba(155,89,182,0.4);
+      border-radius:var(--radius-lg); padding:14px 18px;
+      display:flex; align-items:center; gap:14px; margin-bottom:24px;
+    }
+    .eab-icon { font-size:2rem; flex-shrink:0; }
+    .eab-info strong { font-family:var(--font-title); font-size:0.88rem; color:#c39bd3; display:block; }
+    .eab-info span   { font-size:0.78rem; color:var(--text-muted); }
+
+    /* Modal confirmação uso */
+    .modal-usar { max-width:380px; }
+    .mu-preview { text-align:center; padding:16px 0; }
+    .mu-emoji { font-size:4rem; display:block; margin-bottom:8px; }
+    .mu-efeito { background:var(--bg-deep); border-radius:var(--radius); padding:10px 14px; margin:12px 0; font-size:0.88rem; color:var(--text-main); }
+    .mu-btns { display:flex; gap:10px; margin-top:16px; }
+    .mu-btns .btn { flex:1; }
+
+    /* Animação de uso */
+    .uso-overlay {
+      position:fixed; inset:0; z-index:2000;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,0.8); animation:fade-in 0.2s ease;
+    }
+    .uso-overlay.hidden { display:none; }
+    .uso-box { text-align:center; }
+    .uso-emoji { font-size:6rem; display:block; animation:bounce-uso 0.5s ease infinite alternate; }
+    @keyframes bounce-uso { to { transform:scale(1.2); } }
+    .uso-msg { font-family:var(--font-title); font-size:1.4rem; color:var(--gold-text); margin-top:16px; }
+
+    .empty-inv { text-align:center; padding:60px 20px; color:var(--text-muted);
+      font-family:var(--font-title); font-size:0.85rem; letter-spacing:0.08em; }
+    .empty-inv .ei { font-size:4rem; display:block; margin-bottom:14px; opacity:0.25; }
+
+    .COR_RARIDADE_comum    { --ic-cor: #8899aa; }
+    .COR_RARIDADE_raro     { --ic-cor: #3498db; }
+    .COR_RARIDADE_epico    { --ic-cor: #9b59b6; }
+    .COR_RARIDADE_lendario { --ic-cor: #d4a017; }
+  </style>
+</head>
+<body>
+  <div class="bg-texture"></div>
+
+  <!-- Modal confirmação -->
+  <div class="modal-overlay hidden" id="modal-usar-overlay">
+    <div class="modal modal-usar">
+      <div class="mu-preview">
+        <span class="mu-emoji" id="mu-emoji">🧪</span>
+        <h3 id="mu-nome">Item</h3>
+        <div class="mu-efeito" id="mu-efeito-desc">—</div>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-muted);text-align:center;">Tem certeza que deseja usar este item?</p>
+      <div class="mu-btns">
+        <button class="btn btn-secondary" onclick="fecharModalUsar()">Cancelar</button>
+        <button class="btn btn-primary"   id="btn-confirmar-usar" onclick="confirmarUsar()">Usar Agora!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay de animação de uso -->
+  <div class="uso-overlay hidden" id="uso-overlay">
+    <div class="uso-box">
+      <span class="uso-emoji" id="uso-emoji">✨</span>
+      <p class="uso-msg"  id="uso-msg">Item usado!</p>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <span class="nav-brand">⚔️ RPG da Turma</span>
+      <div class="nav-links">
+        <a href="personagem.html" class="btn btn-secondary btn-sm">← Voltar</a>
+        <a href="missoes.html"    class="btn btn-secondary btn-sm">📋 Missões</a>
+        <button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container-md">
+      <div class="page-header page-enter">
+        <h1>🎒 Inventário</h1>
+        <p id="subtitulo">Seus itens e poderes</p>
+      </div>
+
+      <div id="efeito-ativo-wrap"></div>
+      <div id="inventario-grid" class="inv-grid page-enter"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config/supabase.js"></script>
+  <script src="js/services/auth.js"></script>
+  <script src="js/services/db-alunos.js"></script>
+  <script src="js/logic/game-logic.js"></script>
+  <script src="js/services/db-itens.js"></script>
+  <script>
+    const aluno = exigirAlunoLogado();
+    let inventario = [];
+    let itemParaUsar = null;
+
+    const COR_RARIDADE = { comum:'#8899aa', raro:'#3498db', epico:'#9b59b6', lendario:'#d4a017' };
+
+    async function init() {
+      try {
+        const alunoFull = await buscarAlunoPorId(aluno.id);
+        atualizarSessaoAluno(alunoFull);
+
+        // Efeito ativo
+        if (alunoFull.efeito_ativo && alunoFull.efeito_expira && new Date(alunoFull.efeito_expira) > new Date()) {
+          renderEfeitoAtivo(alunoFull.efeito_ativo, alunoFull.efeito_expira);
+        }
+
+        inventario = await buscarInventarioDoAluno(aluno.id);
+        renderInventario();
+      } catch(e) {
+        document.getElementById('inventario-grid').innerHTML = '<p style="color:var(--ember-bright);text-align:center;padding:40px;">Erro ao carregar inventário.</p>';
+      }
+    }
+
+    function renderEfeitoAtivo(tipo, expira) {
+      const wrap = document.getElementById('efeito-ativo-wrap');
+      const labels = {
+        escudo:       { emoji:'🛡️', nome:'Escudo Mágico Ativo',   desc:'Você está protegido do próximo dano!' },
+        ressurreicao: { emoji:'🔥', nome:'Pena de Fênix Ativa',    desc:'Você ressuscita automaticamente se cair a 0 HP!' },
+        xp_duplo:     { emoji:'🍀', nome:'Amuleto da Sorte Ativo', desc:'O próximo XP do professor vale em dobro!' },
+      };
+      const ef = labels[tipo] || { emoji:'✨', nome:'Efeito Ativo', desc:tipo };
+      const expiraDate = new Date(expira).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      wrap.innerHTML = `
+        <div class="efeito-ativo-banner page-enter">
+          <span class="eab-icon">${ef.emoji}</span>
+          <div class="eab-info">
+            <strong>${ef.nome}</strong>
+            <span>${ef.desc} · Expira: ${expiraDate}</span>
+          </div>
+        </div>`;
+    }
+
+    function renderInventario() {
+      const grid = document.getElementById('inventario-grid');
+      const total = inventario.reduce((s,i) => s + i.quantidade, 0);
+      document.getElementById('subtitulo').textContent = `${total} item${total!==1?'s':''} no inventário`;
+
+      if (!inventario.length) {
+        grid.innerHTML = `<div class="empty-inv" style="grid-column:1/-1;"><span class="ei">🎒</span>Seu inventário está vazio.<br>O professor pode te dar itens!</div>`;
+        return;
+      }
+
+      grid.innerHTML = '';
+      inventario.forEach(item => {
+        const cor = COR_RARIDADE[item.raridade] || '#8899aa';
+        const esgotado = item.quantidade <= 0;
+        const card = document.createElement('div');
+        card.className = `item-card COR_RARIDADE_${item.raridade} ${esgotado?'esgotado':''}`;
+        card.style.setProperty('--ic-cor', cor);
+        card.innerHTML = `
+          <div class="ic-raridade-bar"></div>
+          <span class="ic-emoji">${item.emoji}</span>
+          <span class="ic-raridade-tag">${item.raridade}</span>
+          <p class="ic-nome">${item.nome}</p>
+          <p class="ic-desc">${item.descricao}</p>
+          <span class="ic-qtd">× ${item.quantidade}</span>
+          ${!esgotado ? `<button class="btn btn-primary btn-usar" onclick="abrirModalUsar('${item.inventarioId}','${item.codigo}')">Usar</button>` : '<p style="font-size:0.72rem;color:var(--text-faint);margin-top:8px;font-family:var(--font-title);">ESGOTADO</p>'}
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function abrirModalUsar(invId, codigo) {
+      const item = inventario.find(i => i.inventarioId === invId);
+      if (!item || item.quantidade <= 0) return;
+      itemParaUsar = { invId, codigo, item };
+      document.getElementById('mu-emoji').textContent = item.emoji;
+      document.getElementById('mu-nome').textContent  = item.nome;
+      document.getElementById('mu-efeito-desc').textContent = item.descricao;
+      document.getElementById('modal-usar-overlay').classList.remove('hidden');
+    }
+
+    function fecharModalUsar() {
+      document.getElementById('modal-usar-overlay').classList.add('hidden');
+      itemParaUsar = null;
+    }
+
+    document.getElementById('modal-usar-overlay').addEventListener('click', e => {
+      if (e.target === e.currentTarget) fecharModalUsar();
+    });
+
+    async function confirmarUsar() {
+      if (!itemParaUsar) return;
+      const btn = document.getElementById('btn-confirmar-usar');
+      btn.disabled = true; btn.textContent = '⏳';
+      fecharModalUsar();
+
+      try {
+        const res = await usarItem(aluno.id, itemParaUsar.invId, itemParaUsar.codigo);
+        mostrarUsoAnimacao(itemParaUsar.item.emoji, res.msg || 'Item usado com sucesso!');
+        atualizarSessaoAluno({ ...aluno, hp: res.novoHp, xp: res.novoXp, level: res.novoLevel });
+        await init();
+      } catch(e) {
+        toast('❌ Erro: ' + (e.message||'tente novamente'), 'erro');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Usar Agora!';
+        itemParaUsar = null;
+      }
+    }
+
+    function mostrarUsoAnimacao(emoji, msg) {
+      const overlay = document.getElementById('uso-overlay');
+      document.getElementById('uso-emoji').textContent = emoji;
+      document.getElementById('uso-msg').textContent = msg;
+      overlay.classList.remove('hidden');
+      setTimeout(() => overlay.classList.add('hidden'), 2200);
+    }
+
+    function toast(msg, tipo='info') {
+      let c = document.querySelector('.toast-container');
+      if (!c) { c=document.createElement('div'); c.className='toast-container'; document.body.appendChild(c); }
+      const t = document.createElement('div');
+      t.className = `toast toast-${tipo}`; t.textContent = msg; c.appendChild(t);
+      setTimeout(()=>{ t.classList.add('toast-saindo'); setTimeout(()=>t.remove(),300); },3500);
+    }
+
+    init();
+  </script>
+</body>
+</html>

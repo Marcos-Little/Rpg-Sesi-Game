@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPG da Turma — Editar Personagem</title>
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    .edit-layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 28px;
+      padding: 32px 0 60px;
+      align-items: start;
+    }
+    @media (max-width: 720px) {
+      .edit-layout { grid-template-columns: 1fr; }
+      .preview-col { order: -1; }
+    }
+
+    /* ── Preview sticky ── */
+    .preview-col { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 16px; }
+
+    .preview-card {
+      background: linear-gradient(160deg, var(--bg-card), rgba(34,34,59,0.95));
+      border: 1px solid var(--border-bright);
+      border-radius: var(--radius-xl);
+      padding: 28px 20px;
+      text-align: center;
+      box-shadow: var(--shadow-card), var(--shadow-gold);
+    }
+
+    /* Avatar upload zone */
+    .avatar-upload-zone {
+      position: relative;
+      width: 180px; height: 180px;
+      margin: 0 auto 16px;
+      border-radius: var(--radius-xl);
+      border: 2px dashed var(--border-bright);
+      overflow: hidden;
+      background: var(--bg-deep);
+      cursor: pointer;
+      transition: all var(--transition);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .avatar-upload-zone:hover { border-color: var(--gold); box-shadow: var(--shadow-gold); }
+    .avatar-upload-zone.drag-over { border-color: var(--gold-bright); background: rgba(212,160,23,0.08); transform: scale(1.02); }
+
+    .avatar-upload-zone img#avatar-preview {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      border-radius: calc(var(--radius-xl) - 2px);
+    }
+
+    .upload-overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px; background: rgba(0,0,0,0.55);
+      opacity: 0; transition: opacity var(--transition);
+      border-radius: calc(var(--radius-xl) - 2px);
+    }
+    .avatar-upload-zone:hover .upload-overlay { opacity: 1; }
+    .upload-overlay span { font-family: var(--font-title); font-size: 0.72rem; letter-spacing: 0.08em; color: var(--gold-text); }
+
+    .avatar-upload-zone .empty-icon {
+      font-size: 3.5rem; opacity: 0.25;
+      pointer-events: none;
+    }
+
+    /* Avatar source tabs */
+    .avatar-source-tabs {
+      display: flex; gap: 4px;
+      background: var(--bg-deep);
+      border-radius: var(--radius);
+      padding: 3px;
+      border: 1px solid var(--border-dim);
+      margin-bottom: 12px;
+    }
+    .src-tab {
+      flex: 1; padding: 7px 8px;
+      font-family: var(--font-title); font-size: 0.7rem;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      background: none; border: none; color: var(--text-muted);
+      cursor: pointer; border-radius: calc(var(--radius) - 2px);
+      transition: all var(--transition);
+    }
+    .src-tab.ativo { background: var(--bg-hover); color: var(--gold-text); border: 1px solid var(--border); }
+
+    .avatar-source-panel { display: none; }
+    .avatar-source-panel.ativo { display: block; animation: page-in 0.25s ease; }
+
+    /* Dicebear panel */
+    .dicebear-preview-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+      margin-top: 10px;
+    }
+    .db-option {
+      border-radius: var(--radius);
+      border: 2px solid var(--border-dim);
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--bg-deep);
+      transition: all var(--transition);
+      aspect-ratio: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .db-option:hover { border-color: var(--border-bright); }
+    .db-option.selecionado { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-glow); }
+    .db-option img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* File size indicator */
+    .file-info {
+      font-family: var(--font-title); font-size: 0.72rem;
+      letter-spacing: 0.05em; color: var(--text-muted);
+      display: flex; justify-content: space-between;
+      padding: 6px 10px;
+      background: var(--bg-deep);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-dim);
+    }
+    .file-info .size-ok   { color: var(--xp-green); }
+    .file-info .size-warn { color: #f39c12; }
+    .file-info .size-bad  { color: var(--ember-bright); }
+
+    /* Compress slider */
+    .compress-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 8px;
+    }
+    .compress-row label { white-space: nowrap; min-width: 90px; }
+    input[type="range"] {
+      flex: 1; accent-color: var(--gold);
+      cursor: pointer; height: 4px;
+    }
+    .compress-val { font-family: var(--font-title); font-size: 0.8rem; color: var(--gold-text); min-width: 36px; text-align: right; }
+
+    /* Form sections */
+    .edit-form { display: flex; flex-direction: column; gap: 20px; }
+
+    .form-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+    }
+
+    .section-title {
+      font-family: var(--font-title); font-size: 0.78rem;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-title::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* Class grid (compact) */
+    .class-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+    }
+    @media (max-width: 500px) { .class-grid { grid-template-columns: repeat(2,1fr); } }
+
+    .class-opt input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .class-opt { position: relative; }
+    .class-opt label {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      padding: 12px 8px;
+      background: var(--bg-deep); border: 1px solid var(--border-dim);
+      border-radius: var(--radius); cursor: pointer;
+      transition: all var(--transition);
+      font-family: var(--font-title); font-size: 0.75rem;
+      letter-spacing: 0.04em; color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .class-opt label .ci { font-size: 1.6rem; }
+    .class-opt input:checked + label {
+      border-color: var(--gold); background: rgba(212,160,23,0.1);
+      color: var(--gold-text); box-shadow: 0 0 0 2px var(--gold-glow);
+    }
+    .class-opt label:hover { border-color: var(--border-bright); color: var(--text-bright); }
+
+    /* Gender */
+    .gender-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .gen-opt input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .gen-opt { position: relative; }
+    .gen-opt label {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; background: var(--bg-deep);
+      border: 1px solid var(--border-dim); border-radius: var(--radius);
+      cursor: pointer; transition: all var(--transition);
+      font-family: var(--font-title); font-size: 0.8rem;
+      letter-spacing: 0.04em; color: var(--text-muted);
+    }
+    .gen-opt input:checked + label {
+      border-color: var(--gold); background: rgba(212,160,23,0.1); color: var(--gold-text);
+    }
+
+    /* Extras: apelido e lema */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 500px) { .two-col { grid-template-columns: 1fr; } }
+
+    .char-count-wrap { display: flex; justify-content: space-between; align-items: center; }
+
+    /* Preview nome/classe no card */
+    .preview-nome  { font-family: var(--font-title); font-size: 1.1rem; color: var(--gold-text); margin-bottom: 2px; }
+    .preview-apelido { font-size: 0.82rem; color: var(--text-muted); font-style: italic; margin-bottom: 8px; }
+    .preview-lema  { font-size: 0.78rem; color: var(--text-faint); font-style: italic; margin-bottom: 10px; border-top: 1px solid var(--border-dim); padding-top: 8px; }
+
+    /* Botão de excluir avatar customizado */
+    .btn-reset-avatar {
+      font-size: 0.72rem; padding: 5px 10px;
+      font-family: var(--font-title); letter-spacing: 0.05em;
+    }
+
+    /* Mudanças pendentes badge */
+    .changes-badge {
+      display: none;
+      background: rgba(212,160,23,0.15);
+      border: 1px solid var(--gold-dim);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-family: var(--font-title); font-size: 0.7rem;
+      color: var(--gold-text); letter-spacing: 0.06em;
+    }
+    .changes-badge.visible { display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="bg-texture"></div>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <span class="nav-brand">⚔️ RPG da Turma</span>
+      <div class="nav-links">
+        <span class="changes-badge" id="changes-badge">● Alterações pendentes</span>
+        <a href="personagem.html" class="btn btn-secondary btn-sm">← Voltar</a>
+        <button class="btn btn-secondary btn-sm" onclick="logout()">Sair</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="page-wrapper">
+    <div class="container">
+
+      <div style="padding: 32px 0 8px;" class="page-enter">
+        <h1>🛠️ Editar Personagem</h1>
+        <p style="color:var(--text-muted);font-family:var(--font-title);font-size:0.85rem;letter-spacing:0.08em;">Reforje sua identidade no reino</p>
+      </div>
+
+      <div class="edit-layout page-enter">
+
+        <!-- ── COLUNA PREVIEW ── -->
+        <div class="preview-col">
+          <div class="preview-card">
+            <!-- Zona de upload do avatar -->
+            <div class="avatar-upload-zone" id="upload-zone"
+                 onclick="document.getElementById('file-input').click()"
+                 ondragover="onDragOver(event)"
+                 ondragleave="onDragLeave(event)"
+                 ondrop="onDrop(event)">
+              <img id="avatar-preview" src="" alt="Avatar" style="display:none;">
+              <span class="empty-icon" id="upload-placeholder">🖼️</span>
+              <div class="upload-overlay">
+                <span style="font-size:1.4rem;">📷</span>
+                <span>Trocar foto</span>
+              </div>
+            </div>
+            <input type="file" id="file-input" accept="image/*" style="display:none;" onchange="onFileSelect(event)">
+
+            <p class="preview-nome" id="prev-nome">—</p>
+            <p class="preview-apelido" id="prev-apelido"></p>
+            <p class="preview-lema" id="prev-lema" style="display:none;"></p>
+
+            <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-bottom:12px;">
+              <span class="level-badge" id="prev-level">🌱 Nível 1</span>
+              <span class="class-badge" id="prev-classe">—</span>
+            </div>
+
+            <button class="btn btn-secondary btn-sm btn-reset-avatar" id="btn-usar-dicebear"
+                    onclick="resetarParaDicebear()">
+              🎲 Usar avatar automático
+            </button>
+          </div>
+
+          <!-- Info de tamanho do arquivo -->
+          <div class="file-info" id="file-info" style="display:none;">
+            <span id="file-name">—</span>
+            <span id="file-size" class="size-ok">—</span>
+          </div>
+        </div>
+
+        <!-- ── COLUNA FORMULÁRIO ── -->
+        <form id="form-editar" class="edit-form">
+
+          <!-- Seção: Avatar -->
+          <div class="form-section">
+            <div class="section-title">🖼️ Avatar</div>
+
+            <div class="avatar-source-tabs">
+              <button type="button" class="src-tab ativo" onclick="trocarFonteAvatar('upload', this)">📷 Upload</button>
+              <button type="button" class="src-tab" onclick="trocarFonteAvatar('dicebear', this)">🎲 Automático</button>
+            </div>
+
+            <!-- Upload panel -->
+            <div class="avatar-source-panel ativo" id="panel-upload">
+              <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px;">
+                Clique no avatar ao lado ou arraste uma imagem. Formatos: JPG, PNG, GIF, WebP.
+              </p>
+              <div class="compress-row">
+                <label>Qualidade</label>
+                <input type="range" id="quality-slider" min="30" max="95" value="72"
+                       oninput="onQualityChange(this.value)">
+                <span class="compress-val" id="quality-val">72%</span>
+              </div>
+              <p style="font-size:0.75rem;color:var(--text-faint);margin-top:6px;">
+                💡 A imagem é comprimida automaticamente antes de salvar (máx. ~80KB).
+              </p>
+            </div>
+
+            <!-- DiceBear panel -->
+            <div class="avatar-source-panel" id="panel-dicebear">
+              <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;">
+                Escolha um estilo de avatar gerado automaticamente:
+              </p>
+              <div class="dicebear-preview-grid" id="dicebear-grid">
+                <!-- preenchido por JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção: Classe e Gênero -->
+          <div class="form-section">
+            <div class="section-title">⚔️ Classe</div>
+            <div class="class-grid">
+              <div class="class-opt"><input type="radio" name="classe" id="c-g" value="Guerreiro"><label for="c-g"><span class="ci">⚔️</span>Guerreiro</label></div>
+              <div class="class-opt"><input type="radio" name="classe" id="c-m" value="Mago"><label for="c-m"><span class="ci">🔮</span>Mago</label></div>
+              <div class="class-opt"><input type="radio" name="classe" id="c-a" value="Arqueiro"><label for="c-a"><span class="ci">🏹</span>Arqueiro</label></div>
+              <div class="class-opt"><input type="radio" name="classe" id="c-c" value="Curandeiro"><label for="c-c"><span class="ci">💚</span>Curandeiro</label></div>
+              <div class="class-opt"><input type="radio" name="classe" id="c-l" value="Ladino"><label for="c-l"><span class="ci">🗡️</span>Ladino</label></div>
+              <div class="class-opt"><input type="radio" name="classe" id="c-b" value="Bardo"><label for="c-b"><span class="ci">🎵</span>Bardo</label></div>
+            </div>
+
+            <div class="section-title" style="margin-top:18px;">🧍 Aparência</div>
+            <div class="gender-row">
+              <div class="gen-opt"><input type="radio" name="genero" id="g-m" value="masculino"><label for="g-m">🧔 Masculino</label></div>
+              <div class="gen-opt"><input type="radio" name="genero" id="g-f" value="feminino"><label for="g-f">👩 Feminino</label></div>
+            </div>
+          </div>
+
+          <!-- Seção: Identidade -->
+          <div class="form-section">
+            <div class="section-title">✨ Identidade</div>
+            <div class="two-col">
+              <div class="input-group">
+                <label for="apelido">Apelido / Título</label>
+                <input type="text" id="apelido" placeholder="Ex: O Sombrio, A Sábia..."
+                       maxlength="30" oninput="marcarAlterado(); atualizarPreview();">
+              </div>
+              <div class="input-group">
+                <label for="turma-display">Turma</label>
+                <input type="text" id="turma-display" disabled
+                       style="opacity:0.5;cursor:not-allowed;">
+              </div>
+            </div>
+
+            <div class="input-group mt-16">
+              <div class="char-count-wrap">
+                <label for="lema">Lema do Personagem</label>
+                <span style="font-size:0.75rem;color:var(--text-faint);font-family:var(--font-title);">
+                  <span id="lema-count">0</span>/80
+                </span>
+              </div>
+              <input type="text" id="lema" placeholder="Ex: A honra acima de tudo!"
+                     maxlength="80"
+                     oninput="marcarAlterado(); atualizarPreview(); document.getElementById('lema-count').textContent=this.value.length;">
+            </div>
+          </div>
+
+          <!-- Seção: História -->
+          <div class="form-section">
+            <div class="section-title">📜 Backstory</div>
+            <div class="input-group">
+              <div class="char-count-wrap">
+                <label for="historia">Sua história de origem</label>
+                <span style="font-size:0.75rem;color:var(--text-faint);font-family:var(--font-title);">
+                  <span id="hist-count">0</span>/600
+                </span>
+              </div>
+              <textarea id="historia" rows="6" maxlength="600"
+                        placeholder="Escreva aqui a origem do seu personagem..."
+                        oninput="marcarAlterado(); document.getElementById('hist-count').textContent=this.value.length;"></textarea>
+            </div>
+          </div>
+
+          <!-- Botões -->
+          <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <button type="submit" class="btn btn-primary btn-lg" id="btn-salvar" style="flex:1;">
+              💾 Salvar Alterações
+            </button>
+            <a href="personagem.html" class="btn btn-secondary btn-lg" style="flex:0 0 auto;">
+              Cancelar
+            </a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config/supabase.js"></script>
+  <script src="js/services/auth.js"></script>
+  <script src="js/services/db-alunos.js"></script>
+  <script src="js/logic/game-logic.js"></script>
+  <script>
+    // ════════════════════════════════════════════════════════════
+    // Estado global
+    // ════════════════════════════════════════════════════════════
+    let aluno         = null;
+    let avatarBlob    = null;   // imagem comprimida pronta para salvar
+    let avatarDataUrl = null;   // data URL para preview e salvar no banco
+    let usandoUpload  = true;   // true = upload, false = dicebear
+    let dicebearSelecionado = null;
+    let alteracoesPendentes = false;
+
+    const DICEBEAR_ESTILOS = [
+      { id: 'adventurer',         label: 'Aventureiro' },
+      { id: 'adventurer-neutral', label: 'Neutro'      },
+      { id: 'big-smile',          label: 'Feliz'       },
+      { id: 'bottts',             label: 'Robô'        },
+      { id: 'fun-emoji',          label: 'Emoji'       },
+      { id: 'pixel-art',          label: 'Pixel'       },
+    ];
+
+    // ════════════════════════════════════════════════════════════
+    // Init
+    // ════════════════════════════════════════════════════════════
+    async function init() {
+      const sessao = exigirAlunoLogado();
+      if (!sessao) return;
+
+      aluno = await buscarAlunoPorId(sessao.id);
+
+      // Preenche campos
+      document.getElementById('turma-display').value = aluno.turma;
+      document.getElementById('apelido').value       = aluno.apelido || '';
+      document.getElementById('lema').value          = aluno.lema    || '';
+      document.getElementById('historia').value      = aluno.historia || '';
+      document.getElementById('lema-count').textContent  = (aluno.lema    || '').length;
+      document.getElementById('hist-count').textContent  = (aluno.historia || '').length;
+
+      // Classe e gênero
+      if (aluno.classe) {
+        const radio = document.querySelector(`input[name="classe"][value="${aluno.classe}"]`);
+        if (radio) radio.checked = true;
+      }
+      if (aluno.genero) {
+        const radio = document.querySelector(`input[name="genero"][value="${aluno.genero}"]`);
+        if (radio) radio.checked = true;
+      }
+
+      // Avatar atual
+      const avatarAtual = aluno.avatar_customizado || aluno.avatar_full || aluno.avatar;
+      if (avatarAtual) {
+        mostrarAvatar(avatarAtual);
+      }
+
+      atualizarPreview();
+      gerarGridDicebear();
+
+      // Listeners de classe/gênero
+      document.querySelectorAll('input[name="classe"], input[name="genero"]')
+        .forEach(r => r.addEventListener('change', () => { marcarAlterado(); atualizarPreview(); atualizarDicebearGrid(); }));
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Preview lateral
+    // ════════════════════════════════════════════════════════════
+    function atualizarPreview() {
+      const classe = document.querySelector('input[name="classe"]:checked')?.value || aluno?.classe || '—';
+      const apelido = document.getElementById('apelido').value.trim();
+      const lema    = document.getElementById('lema').value.trim();
+
+      document.getElementById('prev-nome').textContent = aluno?.nome || '—';
+
+      const apelidoEl = document.getElementById('prev-apelido');
+      apelidoEl.textContent = apelido ? `"${apelido}"` : '';
+
+      const lemaEl = document.getElementById('prev-lema');
+      if (lema) {
+        lemaEl.textContent = `❝ ${lema} ❞`;
+        lemaEl.style.display = 'block';
+      } else {
+        lemaEl.style.display = 'none';
+      }
+
+      const { titulo, emoji } = tituloDoLevel(aluno?.level || 1);
+      document.getElementById('prev-level').textContent = `${emoji} Nível ${aluno?.level || 1}`;
+
+      const classeBadge = document.getElementById('prev-classe');
+      classeBadge.textContent = `${classeEmoji(classe)} ${classe}`;
+      classeBadge.className = `class-badge class-${classe.toLowerCase()}`;
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Upload e compressão
+    // ════════════════════════════════════════════════════════════
+    let qualidade = 0.72;
+    let imagemOriginal = null; // HTMLImageElement para recomprimir
+
+    function onFileSelect(e) {
+      const file = e.target.files[0];
+      if (file) processarArquivo(file);
+      e.target.value = ''; // permite selecionar o mesmo arquivo novamente
+    }
+
+    function onDragOver(e) {
+      e.preventDefault();
+      document.getElementById('upload-zone').classList.add('drag-over');
+    }
+    function onDragLeave(e) {
+      document.getElementById('upload-zone').classList.remove('drag-over');
+    }
+    function onDrop(e) {
+      e.preventDefault();
+      document.getElementById('upload-zone').classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('image/')) processarArquivo(file);
+    }
+
+    function processarArquivo(file) {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = new Image();
+        img.onload = () => {
+          imagemOriginal = img;
+          comprimirEAtualizar();
+          marcarAlterado();
+          usandoUpload = true;
+          dicebearSelecionado = null;
+          // Desmarca seleção dicebear
+          document.querySelectorAll('.db-option').forEach(el => el.classList.remove('selecionado'));
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+
+      // Info do arquivo original
+      document.getElementById('file-info').style.display = 'flex';
+      document.getElementById('file-name').textContent = file.name.length > 20
+        ? file.name.substring(0, 18) + '…'
+        : file.name;
+    }
+
+    function comprimirEAtualizar() {
+      if (!imagemOriginal) return;
+
+      const canvas = document.createElement('canvas');
+      // Redimensiona para max 400x400 mantendo proporção
+      const MAX = 400;
+      let w = imagemOriginal.naturalWidth;
+      let h = imagemOriginal.naturalHeight;
+      if (w > h) { if (w > MAX) { h = Math.round(h * MAX/w); w = MAX; } }
+      else        { if (h > MAX) { w = Math.round(w * MAX/h); h = MAX; } }
+      canvas.width = w; canvas.height = h;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imagemOriginal, 0, 0, w, h);
+
+      // Converte para WebP (mais compacto) com fallback para JPEG
+      const tipo = canvas.toDataURL('image/webp').startsWith('data:image/webp')
+        ? 'image/webp' : 'image/jpeg';
+
+      avatarDataUrl = canvas.toDataURL(tipo, qualidade);
+
+      // Mostra tamanho
+      const bytes = Math.round((avatarDataUrl.length * 3) / 4);
+      const kb    = Math.round(bytes / 1024);
+      const sizeEl = document.getElementById('file-size');
+      sizeEl.textContent = `${kb} KB`;
+      sizeEl.className   = kb < 60 ? 'size-ok' : kb < 100 ? 'size-warn' : 'size-bad';
+
+      mostrarAvatar(avatarDataUrl);
+    }
+
+    function onQualityChange(val) {
+      qualidade = val / 100;
+      document.getElementById('quality-val').textContent = val + '%';
+      if (imagemOriginal) comprimirEAtualizar();
+    }
+
+    function mostrarAvatar(src) {
+      const img = document.getElementById('avatar-preview');
+      const placeholder = document.getElementById('upload-placeholder');
+      img.src = src;
+      img.style.display = 'block';
+      placeholder.style.display = 'none';
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // DiceBear grid
+    // ════════════════════════════════════════════════════════════
+    function gerarGridDicebear() {
+      const grid = document.getElementById('dicebear-grid');
+      grid.innerHTML = '';
+
+      DICEBEAR_ESTILOS.forEach(estilo => {
+        const seed = gerarSeedLocal();
+        const url  = `https://api.dicebear.com/7.x/${estilo.id}/svg?seed=${seed}&backgroundColor=1a1a2e`;
+
+        const el = document.createElement('div');
+        el.className = 'db-option';
+        el.title = estilo.label;
+        el.dataset.estilo = estilo.id;
+        el.dataset.url    = url;
+        el.innerHTML = `<img src="${url}" alt="${estilo.label}" loading="lazy">`;
+        el.addEventListener('click', () => selecionarDicebear(el, url));
+        grid.appendChild(el);
+      });
+    }
+
+    function gerarSeedLocal() {
+      if (!aluno) return 'hero';
+      const classe = document.querySelector('input[name="classe"]:checked')?.value || aluno.classe || '';
+      const genero = document.querySelector('input[name="genero"]:checked')?.value || aluno.genero || '';
+      return `${aluno.nome}-${classe}-${genero}`
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\s+/g,'-').toLowerCase();
+    }
+
+    function atualizarDicebearGrid() {
+      // Atualiza as URLs do grid quando classe/gênero mudam
+      const seed = gerarSeedLocal();
+      document.querySelectorAll('.db-option').forEach(el => {
+        const estilo = el.dataset.estilo;
+        const novaUrl = `https://api.dicebear.com/7.x/${estilo}/svg?seed=${seed}&backgroundColor=1a1a2e`;
+        el.dataset.url = novaUrl;
+        el.querySelector('img').src = novaUrl;
+      });
+    }
+
+    function selecionarDicebear(el, url) {
+      document.querySelectorAll('.db-option').forEach(o => o.classList.remove('selecionado'));
+      el.classList.add('selecionado');
+      dicebearSelecionado = url;
+      avatarDataUrl = null; // não é upload
+      imagemOriginal = null;
+      usandoUpload = false;
+      mostrarAvatar(url);
+      marcarAlterado();
+      document.getElementById('file-info').style.display = 'none';
+    }
+
+    function trocarFonteAvatar(tipo, btn) {
+      document.querySelectorAll('.src-tab').forEach(b => b.classList.remove('ativo'));
+      btn.classList.add('ativo');
+      document.querySelectorAll('.avatar-source-panel').forEach(p => p.classList.remove('ativo'));
+      document.getElementById(`panel-${tipo}`).classList.add('ativo');
+      usandoUpload = (tipo === 'upload');
+    }
+
+    function resetarParaDicebear() {
+      // Usa os avatares automáticos originais baseados em classe/gênero
+      const classe = document.querySelector('input[name="classe"]:checked')?.value || aluno.classe || '';
+      const genero = document.querySelector('input[name="genero"]:checked')?.value || aluno.genero || '';
+      const { avatar, avatarFull } = gerarAvatares(aluno.nome, classe, genero);
+
+      avatarDataUrl = null;
+      imagemOriginal = null;
+      dicebearSelecionado = null;
+      usandoUpload = false;
+
+      mostrarAvatar(avatarFull);
+      document.querySelectorAll('.db-option').forEach(o => o.classList.remove('selecionado'));
+      document.getElementById('file-info').style.display = 'none';
+      marcarAlterado();
+
+      toast('🎲 Avatar automático restaurado', 'info');
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Alterações pendentes
+    // ════════════════════════════════════════════════════════════
+    function marcarAlterado() {
+      alteracoesPendentes = true;
+      document.getElementById('changes-badge').classList.add('visible');
+    }
+
+    // Aviso ao sair sem salvar
+    window.addEventListener('beforeunload', e => {
+      if (alteracoesPendentes) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+
+    // ════════════════════════════════════════════════════════════
+    // Submit
+    // ════════════════════════════════════════════════════════════
+    document.getElementById('form-editar').addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const classe  = document.querySelector('input[name="classe"]:checked')?.value;
+      const genero  = document.querySelector('input[name="genero"]:checked')?.value;
+      const historia = document.getElementById('historia').value.trim();
+      const apelido  = document.getElementById('apelido').value.trim();
+      const lema     = document.getElementById('lema').value.trim();
+
+      if (!classe)   return toast('❌ Escolha uma classe!', 'erro');
+      if (!genero)   return toast('❌ Escolha a aparência!', 'erro');
+      if (!historia) return toast('❌ Escreva sua história!', 'erro');
+
+      const btn = document.getElementById('btn-salvar');
+      btn.disabled = true;
+      btn.textContent = '⏳ Salvando...';
+
+      try {
+        // Determina avatares finais
+        let avatar, avatarFull, avatarCustomizado = null;
+
+        if (avatarDataUrl) {
+          // Upload do usuário — salva no campo avatar_customizado
+          avatarCustomizado = avatarDataUrl;
+          avatar     = avatarDataUrl;
+          avatarFull = avatarDataUrl;
+        } else if (dicebearSelecionado) {
+          // DiceBear escolhido manualmente
+          avatar     = dicebearSelecionado;
+          avatarFull = dicebearSelecionado;
+          avatarCustomizado = null;
+        } else {
+          // Regenera DiceBear automático pela classe/gênero
+          const gerado = gerarAvatares(aluno.nome, classe, genero);
+          avatar     = gerado.avatar;
+          avatarFull = gerado.avatarFull;
+          avatarCustomizado = null;
+        }
+
+        const atualizado = await editarPersonagem(aluno.id, {
+          classe, genero, historia, apelido, lema,
+          avatar, avatarFull,
+          avatar_customizado: avatarCustomizado,
+        });
+
+        atualizarSessaoAluno(atualizado);
+        alteracoesPendentes = false;
+        document.getElementById('changes-badge').classList.remove('visible');
+
+        toast('✅ Personagem atualizado com sucesso!', 'sucesso');
+        setTimeout(() => window.location.href = 'personagem.html', 1400);
+
+      } catch(err) {
+        console.error(err);
+        toast('❌ Erro ao salvar. Verifique o console (F12).', 'erro');
+        btn.disabled = false;
+        btn.textContent = '💾 Salvar Alterações';
+      }
+    });
+
+    // ════════════════════════════════════════════════════════════
+    // Toast
+    // ════════════════════════════════════════════════════════════
+    function toast(msg, tipo = 'info') {
+      let c = document.querySelector('.toast-container');
+      if (!c) {
+        c = document.createElement('div');
+        c.className = 'toast-container';
+        document.body.appendChild(c);
+      }
+      const t = document.createElement('div');
+      t.className = `toast toast-${tipo}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(() => { t.classList.add('toast-saindo'); setTimeout(() => t.remove(), 300); }, 3500);
+    }
+
+    // Helpers para gerarAvatares (importa de game-logic.js)
+    function gerarSeedLocal2(nome, classe, genero) {
+      return `${nome}-${classe}-${genero}`
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+        .replace(/\s+/g,'-').toLowerCase();
+    }
+
+    init();
+  </script>
+</body>
+</html>
